@@ -7,13 +7,16 @@
     :serial t
     :pathname "src"
     :components ((:file "package")
+                 (:file "conditions")
+                 (:file "loaders")
                  (:file "application"))
     :depends-on (:cl-gtk4
                  :varjo
                  :cl-opengl
                  :rtg-math
                  :serapeum
-                 :numpy-npy)
+                 :numpy-npy
+                 :cl-libtiff)
     :build-operation program-op
     :build-pathname "slice2volume"
     :entry-point "slice2volume:slice2volume")

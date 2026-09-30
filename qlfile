@@ -4,3 +4,4 @@ ql cl-opengl
 ql rtg-math
 github cbaggers/varjo
 github shamazmazum/numpy-npy :tag v0.4
+github shamazmazum/cl-libtiff :tag v0.1
