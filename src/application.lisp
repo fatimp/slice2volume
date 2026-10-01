@@ -106,45 +106,46 @@
     (setf (gtk4:window-title window) "Slice2Volume")
     ;; KLUDGE: this setter is broken in cl-gtk4, so use gir directly
     (gir:invoke (window "set_size_request") 1200 700)
-    (let ((toplevel-box (gtk4:make-box :orientation gtk4:+orientation-vertical+
-                                       :spacing 2))
-          (huge-box     (gtk4:make-box :orientation gtk4:+orientation-horizontal+
-                                       :spacing 0))
-          (big-box      (gtk4:make-box :orientation gtk4:+orientation-vertical+
-                                       :spacing 10))
-          (load-box     (gtk4:make-box :orientation gtk4:+orientation-vertical+
-                                       :spacing 5))
-          (cut-box      (gtk4:make-box :orientation gtk4:+orientation-vertical+
-                                       :spacing 5))
-          (plane-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
-                                       :spacing 5))
-          (load-frame  (gtk4:make-frame :label "Data Loading"))
-          (cut-frame   (gtk4:make-frame :label "Cutting Plane Control"))
-          (plane-frame (gtk4:make-frame :label "Planar Space Control"))
+    (let* ((scene (make-scene))
+           (toplevel-box (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                        :spacing 2))
+           (huge-box     (gtk4:make-box :orientation gtk4:+orientation-horizontal+
+                                        :spacing 0))
+           (big-box      (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                        :spacing 10))
+           (load-box     (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                        :spacing 5))
+           (cut-box      (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                        :spacing 5))
+           (plane-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                        :spacing 5))
+           (load-frame  (gtk4:make-frame :label "Data Loading"))
+           (cut-frame   (gtk4:make-frame :label "Cutting Plane Control"))
+           (plane-frame (gtk4:make-frame :label "Planar Space Control"))
 
-          (area (gtk4:make-gl-area))
-          (status (gtk4:make-label :str "Welcome to Slice2Volume"))
-          ;; Data loading
-          (slice-button  (gtk4:make-button :label "Load Slice"))
-          (volume-button (gtk4:make-button :label "Load Volume"))
-          (basis-button  (gtk4:make-button :label "Randomize Basis"))
-          ;; Cutting plane
-          (nx-scale (scale  0d0 1d0 0d0 1d-1))
-          (ny-scale (scale  0d0 1d0 0d0 1d-1))
-          (nz-scale (scale  0d0 1d0 1d0 1d-1))
-          (d-scale  (scale -1d0 1d0 0d0 1d-1))
-          ;; Planar space
-          (ϕ-scale  (scale  (- pi) (+ pi) 0d0 1d-1))
-          (Δu-scale (scale -1d0 1d0 0d0 1d-1))
-          (Δv-scale (scale -1d0 1d0 0d0 1d-1)))
+           (renderer (make-drawing-area scene))
+           (status (gtk4:make-label :str "Welcome to Slice2Volume"))
+           ;; Data loading
+           (slice-button  (gtk4:make-button :label "Load Slice"))
+           (volume-button (gtk4:make-button :label "Load Volume"))
+           (basis-button  (gtk4:make-button :label "Randomize Basis"))
+           ;; Cutting plane
+           (nx-scale (scale  0d0 1d0 0d0 1d-1))
+           (ny-scale (scale  0d0 1d0 0d0 1d-1))
+           (nz-scale (scale  0d0 1d0 1d0 1d-1))
+           (d-scale  (scale -1d0 1d0 0d0 1d-1))
+           ;; Planar space
+           (ϕ-scale  (scale  (- pi) (+ pi) 0d0 1d-1))
+           (Δu-scale (scale -1d0 1d0 0d0 1d-1))
+           (Δv-scale (scale -1d0 1d0 0d0 1d-1)))
       (setf (gtk4:window-child window)      toplevel-box
             (gtk4:frame-child  load-frame)  load-box
             (gtk4:frame-child  cut-frame)   cut-box
             (gtk4:frame-child  plane-frame) plane-box)
-      (expand-widget area)
+      (expand-widget (renderer-area renderer))
       (gtk4:box-append toplevel-box huge-box)
       (gtk4:box-append toplevel-box status)
-      (gtk4:box-append huge-box area)
+      (gtk4:box-append huge-box (renderer-area renderer))
       (gtk4:box-append huge-box big-box)
       (gtk4:box-append big-box  load-frame)
       (gtk4:box-append big-box  cut-frame)
@@ -179,7 +180,11 @@
         (lambda (pathname)
           (handler-case
               (let ((slice (load-slice pathname)))
-                (print (array-dimensions slice)))
+                (setf (gtk4:label-text status)
+                      (format nil "Slice with dimensions ~a loaded"
+                              (array-dimensions slice)))
+                (funcall (renderer-slice-uploader renderer) slice)
+                (gtk4:gl-area-queue-render (renderer-area renderer)))
             (error (c) (show-error-dialog c))))))))
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))

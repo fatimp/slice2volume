@@ -8,7 +8,10 @@
     :pathname "src"
     :components ((:file "package")
                  (:file "conditions")
+                 (:file "util")
                  (:file "loaders")
+                 (:file "shaders")
+                 (:file "renderer")
                  (:file "application"))
     :depends-on (:cl-gtk4
                  :varjo

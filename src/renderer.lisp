@@ -1,0 +1,103 @@
+(in-package :slice2volume)
+
+(deftype slice-gpu-uploader  () '(function ((image 2)) (values &optional)))
+(deftype volume-gpu-uploader () '(function ((image 3)) (values &optional)))
+
+(declaim (ftype slice-gpu-uploader upload-slice-stub))
+(defun upload-slice-stub (image)
+  (declare (ignore image))
+  (values))
+
+(declaim (ftype volume-gpu-uploader upload-volume-stub))
+(defun upload-volume-stub (image)
+  (declare (ignore image))
+  (values))
+
+(defstruct scene
+  (slice-loaded-p  nil :type boolean)
+  (volume-loaded-p nil :type boolean))
+
+(serapeum:defconstructor context
+  (slice-program  fixnum)
+  (slice-texture  fixnum)
+  (volume-program fixnum)
+  (volume-texture fixnum)
+  (vao            fixnum))
+
+(serapeum:defconstructor renderer
+  (area            gir::object-instance)
+  (slice-uploader  slice-gpu-uploader)
+  (volume-uploader volume-gpu-uploader))
+
+(serapeum:-> make-slice-uploader (gir::object-instance getter scene)
+             (values slice-gpu-uploader &optional))
+(defun make-slice-uploader (area getter scene)
+  (lambda (slice)
+    (gtk4:gl-area-make-current area)
+    (let ((context (funcall getter)))
+      (gl:bind-texture :texture-2d (context-slice-texture context))
+      (fast-upload-slice slice))
+    (setf (scene-slice-loaded-p scene) t)
+    (values)))
+
+(serapeum:-> make-realize-handler (setter)
+             (values (function (gir::object-instance) (values &optional)) &optional))
+(defun make-realize-handler (setter)
+  (lambda (area)
+    (gtk4:gl-area-make-current area)
+    (gl:clear-color 0.0 0.0 0.0 0.0)
+
+    (let ((slice-texture (gl:gen-texture))
+          (slice-program (create-program *slice-program*))
+          (vao           (gl:gen-vertex-array)))
+      (gl:bind-texture  :texture-2d slice-texture)
+      (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+      (gl:tex-parameter :texture-2d :texture-min-filter :linear)
+      (gl:tex-parameter :texture-2d :texture-wrap-s :clamp-to-border)
+      (gl:tex-parameter :texture-2d :texture-wrap-t :clamp-to-border)
+      (funcall setter (context slice-program slice-texture -1 -1 vao)))
+    (values)))
+
+(serapeum:-> make-unrealize-handler (getter)
+             (values (function (gir::object-instance) (values &optional)) &optional))
+(defun make-unrealize-handler (getter)
+  (lambda (area)
+    (gtk4:gl-area-make-current area)
+    (let ((context (funcall getter)))
+      (gl:delete-vertex-array (context-vao context))
+      (gl:delete-program (context-slice-program context))
+      (gl:delete-textures (list (context-slice-texture context))))
+    (values)))
+
+(serapeum:-> make-draw-handler (getter scene)
+             (values (function (gir::object-instance gir::object-instance)
+                               (values boolean &optional))
+                     &optional))
+(defun make-draw-handler (getter scene)
+  (lambda (area context)
+    (declare (ignore context area))
+    (gl:clear :color-buffer-bit)
+    (let ((context (funcall getter)))
+      (when (scene-slice-loaded-p scene)
+        ;; Render slice
+        (gl:use-program (context-slice-program context))
+        (set-int-uniform (context-slice-program context) "SAMPLER" 0)
+        (gl:active-texture :texture0)
+        (gl:bind-texture :texture-2d (context-slice-texture context))
+        (gl:bind-vertex-array (context-vao context))
+        (gl:draw-arrays :triangle-strip 0 4)))
+    (values)))
+
+(serapeum:-> make-drawing-area (scene)
+             (values renderer &optional))
+(defun make-drawing-area (scene)
+  (let ((area (gtk4:make-gl-area)))
+    (setf (gtk4:gl-area-allowed-apis area) 1) ; OpenGL Only
+    (with-place (context-getter context-setter)
+      (gtk4:connect area "realize"   (make-realize-handler   #'context-setter))
+      (gtk4:connect area "unrealize" (make-unrealize-handler #'context-getter))
+      (gtk4:connect area "render"    (make-draw-handler      #'context-getter scene))
+      (renderer
+       area
+       (make-slice-uploader area #'context-getter scene)
+       #'upload-volume-stub))))

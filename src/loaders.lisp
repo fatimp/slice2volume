@@ -45,7 +45,10 @@
              :slicep       t
              :dimensions   (array-dimensions array)
              :element-type (array-element-type array)))
-    (normalize #'/255 array)))
+    ;; SBCL does not infere element type from the previous assertion
+    (let ((array array))
+      (declare (type (simple-array (unsigned-byte 8) 2) array))
+      (normalize #'/255 array))))
 
 (declaim (ftype volume-loader numpy-volume-loader))
 (defun numpy-volume-loader (pathname)
@@ -58,7 +61,10 @@
              :slicep       nil
              :dimensions   (array-dimensions array)
              :element-type (array-element-type array)))
-    (normalize #'/255 array)))
+    ;; SBCL does not infere element type from the previous assertion
+    (let ((array array))
+      (declare (type (simple-array (unsigned-byte 8) 3) array))
+      (normalize #'/255 array))))
 
 ;; TIFF
 (serapeum:-> read-tiff-slice (tiff:tiff-handle unsigned-byte unsigned-byte)
