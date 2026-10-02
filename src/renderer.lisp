@@ -93,12 +93,14 @@
                      &optional))
 (defun make-draw-handler (getter scene)
   (lambda (area context)
-    (declare (ignore context area))
+    (declare (ignore context))
     (gl:clear :color-buffer-bit)
-    (let ((context (funcall getter)))
-      #+nil
+    (let ((context (funcall getter))
+          (width   (gtk4:widget-width  area))
+          (height  (gtk4:widget-height area)))
       (when (scene-slice-loaded-p scene)
         ;; Render slice
+        (gl:viewport 0 0 (floor width 2) height)
         (gl:use-program (context-slice-program context))
         (set-int-uniform (context-slice-program context) "SAMPLER" 0)
         (gl:active-texture :texture0)
@@ -107,6 +109,7 @@
         (gl:draw-arrays :triangle-strip 0 4))
       (when (scene-volume-loaded-p scene)
         ;; Render volume
+        (gl:viewport (floor width 2) 0 (floor width 2) height)
         (let ((program (context-volume-program context)))
           (gl:use-program program)
           (set-int-uniform   program "SAMPLER" 0)

@@ -40,10 +40,11 @@
     (gtk4:native-dialog-show dialog)
     (values)))
 
-(serapeum:-> show-error-dialog (condition)
+(serapeum:-> show-error-dialog (gir::object-instance condition)
              (values &optional))
-(defun show-error-dialog (condition)
+(defun show-error-dialog (parent condition)
   (let ((dialog (gtk4:make-dialog)))
+    (setf (gtk4:window-transient-for dialog) parent)
     (gtk4:dialog-add-button dialog "Close" gtk4:+response-type-close+)
     (let ((label (gtk4:make-label
                   :str (with-output-to-string (out)
@@ -176,7 +177,7 @@
                               (array-dimensions volume)))
                 (funcall (renderer-volume-uploader renderer) volume)
                 (gtk4:gl-area-queue-render (renderer-area renderer)))
-            (error (c) (show-error-dialog c)))))))
+            (error (c) (show-error-dialog window c)))))))
     (gtk4:connect
      slice-button "clicked"
      (lambda (widget)
@@ -191,6 +192,6 @@
                               (array-dimensions slice)))
                 (funcall (renderer-slice-uploader renderer) slice)
                 (gtk4:gl-area-queue-render (renderer-area renderer)))
-            (error (c) (show-error-dialog c))))))))
+            (error (c) (show-error-dialog window c))))))))
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))
