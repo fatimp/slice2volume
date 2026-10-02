@@ -87,18 +87,20 @@
       (gtk4:box-append parent box)))
   (values))
 
-(serapeum:-> scale (double-float double-float double-float double-float)
+(serapeum:-> scale (real real real real)
              (values gir::object-instance &optional))
 (defun scale (min max value step)
-  (let ((scale (gtk4:make-scale :min min :max max :step step
-                                :orientation gtk4:+orientation-horizontal+)))
-    (setf (gtk4:widget-size-request scale) '(200 10)
-          (gtk4:widget-margin-start scale) 15
-          (gtk4:widget-margin-end   scale) 15
-          (gtk4:range-value         scale) (float value 0d0)
-          (gtk4:scale-digits scale) 3
-          (gtk4:scale-draw-value-p scale) t)
-    scale))
+  (flet ((d (x) (float x 0d0)))
+    (declare (inline d))
+    (let ((scale (gtk4:make-scale :min (d min) :max (d max) :step (d step)
+                                  :orientation gtk4:+orientation-horizontal+)))
+      (setf (gtk4:widget-size-request scale) '(200 10)
+            (gtk4:widget-margin-start scale) 15
+            (gtk4:widget-margin-end   scale) 15
+            (gtk4:range-value         scale) (d value)
+            (gtk4:scale-digits scale) 3
+            (gtk4:scale-draw-value-p scale) t)
+      scale)))
 
 (gtk4:define-application (:name slice2volume :id "org.fatimp.slice2volume")
   (gtk4:define-main-window (window (gtk4:make-application-window
@@ -130,14 +132,14 @@
            (volume-button (gtk4:make-button :label "Load Volume"))
            (basis-button  (gtk4:make-button :label "Randomize Basis"))
            ;; Cutting plane
-           (nx-scale (scale  0d0 1d0 0d0 1d-1))
-           (ny-scale (scale  0d0 1d0 0d0 1d-1))
-           (nz-scale (scale  0d0 1d0 1d0 1d-1))
-           (d-scale  (scale -1d0 1d0 0d0 1d-1))
+           (nx-scale (scale  0f0 1f0 (aref (scene-n scene) 0) 1f-1))
+           (ny-scale (scale  0f0 1f0 (aref (scene-n scene) 1) 1f-1))
+           (nz-scale (scale  0f0 1f0 (aref (scene-n scene) 2) 1f-1))
+           (d-scale  (scale -1f0 1f0 (scene-d scene) 1f-1))
            ;; Planar space
-           (ϕ-scale  (scale  (- pi) (+ pi) 0d0 1d-1))
-           (Δu-scale (scale -1d0 1d0 0d0 1d-1))
-           (Δv-scale (scale -1d0 1d0 0d0 1d-1)))
+           (ϕ-scale  (scale  (- pi) (+ pi) (scene-ϕ scene) 1f-1))
+           (Δu-scale (scale -1f0 1f0 (scene-Δu scene) 1f-1))
+           (Δv-scale (scale -1f0 1f0 (scene-Δv scene) 1f-1)))
       (setf (gtk4:window-child window)      toplevel-box
             (gtk4:frame-child  load-frame)  load-box
             (gtk4:frame-child  cut-frame)   cut-box
@@ -169,7 +171,11 @@
         (lambda (pathname)
           (handler-case
               (let ((volume (load-volume pathname)))
-                (print (array-dimensions volume)))
+                (setf (gtk4:label-text status)
+                      (format nil "Volume with dimensions ~a loaded"
+                              (array-dimensions volume)))
+                (funcall (renderer-volume-uploader renderer) volume)
+                (gtk4:gl-area-queue-render (renderer-area renderer)))
             (error (c) (show-error-dialog c)))))))
     (gtk4:connect
      slice-button "clicked"

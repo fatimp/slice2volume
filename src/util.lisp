@@ -45,18 +45,38 @@
              (values &optional))
 (defun fast-upload-slice (array)
   (declare (optimize (speed 3)))
-  #-sbcl
-  (gl:tex-image-3d :texture-3d 0 :red
-                   (array-dimension array 2)
-                   (array-dimension array 1)
-                   (array-dimension array 0)
-                   0 :red :float (flatten array))
-  #+sbcl
   (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
     (gl:tex-image-2d :texture-2d 0 :red
                      (array-dimension array 1)
                      (array-dimension array 0)
                      0 :red :float ptr)))
+
+(serapeum:-> fast-upload-volume ((simple-array single-float (* * *)))
+             (values &optional))
+(defun fast-upload-volume (array)
+  (declare (optimize (speed 3)))
+  (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
+    (gl:tex-image-3d :texture-3d 0 :red
+                     (array-dimension array 2)
+                     (array-dimension array 1)
+                     (array-dimension array 0)
+                     0 :red :float ptr)))
+
+(serapeum:-> planar-transform-matrix (single-float single-float single-float)
+             (values rtg-math.types:mat3 &optional))
+(defun planar-transform-matrix (ϕ Δu Δv)
+  (let ((cos (cos ϕ))
+        (sin (sin ϕ)))
+    (m3:make cos (- sin) Δu (+ sin) cos Δv 0.0 0.0 1.0)))
+
+(serapeum:-> world-transform-matrix
+    (rtg-math.types:vec3 rtg-math.types:vec3 rtg-math.types:vec3)
+    (values rtg-math.types:mat3 &optional))
+(defun world-transform-matrix (v1 v2 n)
+  (let* ((n  (v3:normalize n))
+         (τ1 (v3:normalize (v3:- v1 (v3:*s n (v3:dot n v1)))))
+         (τ2 (v3:normalize (v3:- v2 (v3:*s n (v3:dot n v2)) (v3:*s τ1 (v3:dot τ1 v2))))))
+    (m3:from-columns τ1 τ2 n)))
 
 (serapeum:-> set-int-uniform (t string integer)
              (values &optional))
@@ -64,4 +84,18 @@
   (gl:uniformi
    (gl:get-uniform-location program uniform)
    value)
+  (values))
+
+(serapeum:-> set-mat3-uniform (t string rtg-math.types:mat3)
+             (values &optional))
+(defun set-mat3-uniform (program uniform m)
+  (let ((location (gl:get-uniform-location program uniform)))
+    (gl:uniform-matrix location 3 (vector m) nil))
+  (values))
+
+(serapeum:-> set-float-uniform (t string single-float)
+             (values &optional))
+(defun set-float-uniform (program uniform x)
+  (let ((location (gl:get-uniform-location program uniform)))
+    (gl:uniformf location x))
   (values))

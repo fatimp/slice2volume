@@ -3,19 +3,19 @@
 (deftype slice-gpu-uploader  () '(function ((image 2)) (values &optional)))
 (deftype volume-gpu-uploader () '(function ((image 3)) (values &optional)))
 
-(declaim (ftype slice-gpu-uploader upload-slice-stub))
-(defun upload-slice-stub (image)
-  (declare (ignore image))
-  (values))
-
-(declaim (ftype volume-gpu-uploader upload-volume-stub))
-(defun upload-volume-stub (image)
-  (declare (ignore image))
-  (values))
-
 (defstruct scene
   (slice-loaded-p  nil :type boolean)
-  (volume-loaded-p nil :type boolean))
+  (volume-loaded-p nil :type boolean)
+  (ϕ               0.0 :type single-float)
+  (Δu              0.0 :type single-float)
+  (Δv              0.0 :type single-float)
+  ;; Planar basis
+  (v1 (v3:make 1.0 0.0 0.0) :type rtg-math.types:vec3)
+  (v2 (v3:make 0.0 1.0 0.0) :type rtg-math.types:vec3)
+  ;; And a normal to the cutting plane
+  (n  (v3:make 0.0 0.0 1.0) :type rtg-math.types:vec3)
+  ;; Distance to the cutting plane
+  (d               0.0 :type single-float))
 
 (serapeum:defconstructor context
   (slice-program  fixnum)
@@ -40,6 +40,17 @@
     (setf (scene-slice-loaded-p scene) t)
     (values)))
 
+(serapeum:-> make-volume-uploader (gir::object-instance getter scene)
+             (values volume-gpu-uploader &optional))
+(defun make-volume-uploader (area getter scene)
+  (lambda (volume)
+    (gtk4:gl-area-make-current area)
+    (let ((context (funcall getter)))
+      (gl:bind-texture :texture-3d (context-volume-texture context))
+      (fast-upload-volume volume))
+    (setf (scene-volume-loaded-p scene) t)
+    (values)))
+
 (serapeum:-> make-realize-handler (setter)
              (values (function (gir::object-instance) (values &optional)) &optional))
 (defun make-realize-handler (setter)
@@ -47,15 +58,20 @@
     (gtk4:gl-area-make-current area)
     (gl:clear-color 0.0 0.0 0.0 0.0)
 
-    (let ((slice-texture (gl:gen-texture))
-          (slice-program (create-program *slice-program*))
-          (vao           (gl:gen-vertex-array)))
+    (let ((slice-texture   (gl:gen-texture))
+          (volume-texture  (gl:gen-texture))
+          (slice-program   (create-program *slice-program*))
+          (volume-program  (create-program *volume-program*))
+          (vao             (gl:gen-vertex-array)))
       (gl:bind-texture  :texture-2d slice-texture)
       (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
       (gl:tex-parameter :texture-2d :texture-min-filter :linear)
-      (gl:tex-parameter :texture-2d :texture-wrap-s :clamp-to-border)
-      (gl:tex-parameter :texture-2d :texture-wrap-t :clamp-to-border)
-      (funcall setter (context slice-program slice-texture -1 -1 vao)))
+      (gl:bind-texture  :texture-3d volume-texture)
+      (gl:tex-parameter :texture-3d :texture-mag-filter :linear)
+      (gl:tex-parameter :texture-3d :texture-min-filter :linear)
+      (funcall setter (context slice-program slice-texture
+                               volume-program volume-texture
+                               vao)))
     (values)))
 
 (serapeum:-> make-unrealize-handler (getter)
@@ -65,8 +81,10 @@
     (gtk4:gl-area-make-current area)
     (let ((context (funcall getter)))
       (gl:delete-vertex-array (context-vao context))
-      (gl:delete-program (context-slice-program context))
-      (gl:delete-textures (list (context-slice-texture context))))
+      (gl:delete-program (context-slice-program  context))
+      (gl:delete-program (context-volume-program context))
+      (gl:delete-textures (list (context-slice-texture  context)
+                                (context-volume-texture context))))
     (values)))
 
 (serapeum:-> make-draw-handler (getter scene)
@@ -78,12 +96,33 @@
     (declare (ignore context area))
     (gl:clear :color-buffer-bit)
     (let ((context (funcall getter)))
+      #+nil
       (when (scene-slice-loaded-p scene)
         ;; Render slice
         (gl:use-program (context-slice-program context))
         (set-int-uniform (context-slice-program context) "SAMPLER" 0)
         (gl:active-texture :texture0)
         (gl:bind-texture :texture-2d (context-slice-texture context))
+        (gl:bind-vertex-array (context-vao context))
+        (gl:draw-arrays :triangle-strip 0 4))
+      (when (scene-volume-loaded-p scene)
+        ;; Render volume
+        (let ((program (context-volume-program context)))
+          (gl:use-program program)
+          (set-int-uniform   program "SAMPLER" 0)
+          (set-float-uniform program "DIST" (scene-d scene))
+          (set-mat3-uniform  program "PLANAR_TRANSFORM"
+                             (planar-transform-matrix
+                              (scene-ϕ scene)
+                              (scene-Δu scene)
+                              (scene-Δv scene)))
+          (set-mat3-uniform  program "WORLD_TRANSFORM"
+                             (world-transform-matrix
+                              (scene-v1 scene)
+                              (scene-v2 scene)
+                              (scene-n  scene))))
+        (gl:active-texture :texture0)
+        (gl:bind-texture :texture-3d (context-volume-texture context))
         (gl:bind-vertex-array (context-vao context))
         (gl:draw-arrays :triangle-strip 0 4)))
     (values)))
@@ -99,5 +138,5 @@
       (gtk4:connect area "render"    (make-draw-handler      #'context-getter scene))
       (renderer
        area
-       (make-slice-uploader area #'context-getter scene)
-       #'upload-volume-stub))))
+       (make-slice-uploader  area #'context-getter scene)
+       (make-volume-uploader area #'context-getter scene)))))
