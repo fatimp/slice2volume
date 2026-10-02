@@ -99,3 +99,10 @@
   (let ((location (gl:get-uniform-location program uniform)))
     (gl:uniformf location x))
   (values))
+
+(serapeum:-> random-vec3 ()
+             (values rtg-math.types:vec3 &optional))
+(defun random-vec3 ()
+  (v3:make (random 1.0)
+           (random 1.0)
+           (random 1.0)))

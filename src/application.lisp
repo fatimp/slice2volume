@@ -133,14 +133,14 @@
            (volume-button (gtk4:make-button :label "Load Volume"))
            (basis-button  (gtk4:make-button :label "Randomize Basis"))
            ;; Cutting plane
-           (nx-scale (scale  0f0 1f0 (aref (scene-n scene) 0) 1f-1))
-           (ny-scale (scale  0f0 1f0 (aref (scene-n scene) 1) 1f-1))
-           (nz-scale (scale  0f0 1f0 (aref (scene-n scene) 2) 1f-1))
-           (d-scale  (scale -1f0 1f0 (scene-d scene) 1f-1))
+           (nx-scale (scale  0f0 1f0 (aref (scene-n scene) 0) 1f-2))
+           (ny-scale (scale  0f0 1f0 (aref (scene-n scene) 1) 1f-2))
+           (nz-scale (scale  0f0 1f0 (aref (scene-n scene) 2) 1f-2))
+           (d-scale  (scale -1f0 1f0 (scene-d scene) 1f-2))
            ;; Planar space
-           (ϕ-scale  (scale  (- pi) (+ pi) (scene-ϕ scene) 1f-1))
-           (Δu-scale (scale -1f0 1f0 (scene-Δu scene) 1f-1))
-           (Δv-scale (scale -1f0 1f0 (scene-Δv scene) 1f-1)))
+           (ϕ-scale  (scale  (- pi) (+ pi) (scene-ϕ scene) 1f-2))
+           (Δu-scale (scale -1f0 1f0 (scene-Δu scene) 1f-2))
+           (Δv-scale (scale -1f0 1f0 (scene-Δv scene) 1f-2)))
       (setf (gtk4:window-child window)      toplevel-box
             (gtk4:frame-child  load-frame)  load-box
             (gtk4:frame-child  cut-frame)   cut-box
@@ -163,35 +163,61 @@
       (box-append-with-label plane-box Δu-scale "Δu" :h)
       (box-append-with-label plane-box Δv-scale "Δv" :h)
       (gtk4:box-append plane-box basis-button)
-    (gtk4:connect
-     volume-button "clicked"
-     (lambda (widget)
-       (declare (ignore widget))
-       (file-chooser-dialog
-        window :volume
-        (lambda (pathname)
-          (handler-case
-              (let ((volume (load-volume pathname)))
-                (setf (gtk4:label-text status)
-                      (format nil "Volume with dimensions ~a loaded"
-                              (array-dimensions volume)))
-                (funcall (renderer-volume-uploader renderer) volume)
-                (gtk4:gl-area-queue-render (renderer-area renderer)))
-            (error (c) (show-error-dialog window c)))))))
-    (gtk4:connect
-     slice-button "clicked"
-     (lambda (widget)
-       (declare (ignore widget))
-       (file-chooser-dialog
-        window :slice
-        (lambda (pathname)
-          (handler-case
-              (let ((slice (load-slice pathname)))
-                (setf (gtk4:label-text status)
-                      (format nil "Slice with dimensions ~a loaded"
-                              (array-dimensions slice)))
-                (funcall (renderer-slice-uploader renderer) slice)
-                (gtk4:gl-area-queue-render (renderer-area renderer)))
-            (error (c) (show-error-dialog window c))))))))
+      (flet ((%connect (scale f)
+               (gtk4:connect
+                scale "value-changed"
+                (lambda (widget)
+                  (declare (ignore widget))
+                  (let ((x (float (gtk4:range-value scale) 0f0)))
+                    (funcall f x))
+                  (gtk4:gl-area-queue-render (renderer-area renderer))))))
+        (macrolet ((connect (scale place)
+                     `(%connect ,scale (lambda (x) (setf ,place x)))))
+          (connect nx-scale (aref (scene-n  scene) 0))
+          (connect ny-scale (aref (scene-n  scene) 1))
+          (connect nz-scale (aref (scene-n  scene) 2))
+          (connect  d-scale       (scene-d  scene))
+          (connect  ϕ-scale       (scene-ϕ  scene))
+          (connect Δu-scale       (scene-Δu scene))
+          (connect Δv-scale       (scene-Δv scene))))
+      (gtk4:connect
+       volume-button "clicked"
+       (lambda (widget)
+         (declare (ignore widget))
+         (file-chooser-dialog
+          window :volume
+          (lambda (pathname)
+            (handler-case
+                (let ((volume (load-volume pathname)))
+                  (setf (gtk4:label-text status)
+                        (format nil "Volume with dimensions ~a loaded"
+                                (array-dimensions volume)))
+                  (funcall (renderer-volume-uploader renderer) volume)
+                  (gtk4:gl-area-queue-render (renderer-area renderer)))
+              (error (c) (show-error-dialog window c)))))))
+      (gtk4:connect
+       slice-button "clicked"
+       (lambda (widget)
+         (declare (ignore widget))
+         (file-chooser-dialog
+          window :slice
+          (lambda (pathname)
+            (handler-case
+                (let ((slice (load-slice pathname)))
+                  (setf (gtk4:label-text status)
+                        (format nil "Slice with dimensions ~a loaded"
+                                (array-dimensions slice)))
+                  (funcall (renderer-slice-uploader renderer) slice)
+                  (gtk4:gl-area-queue-render (renderer-area renderer)))
+              (error (c) (show-error-dialog window c)))))))
+      (gtk4:connect
+       basis-button "clicked"
+       (lambda (widget)
+         (declare (ignore widget))
+         (setf (scene-v1 scene)
+               (random-vec3)
+               (scene-v2 scene)
+               (random-vec3))
+         (gtk4:gl-area-queue-render (renderer-area renderer)))))
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))
