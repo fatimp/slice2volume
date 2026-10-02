@@ -59,8 +59,12 @@
    '((coord :vec3))         ; Texture coordinate
    '((sampler :sampler-3d)) ; Texture sampler
    '(:330)
-   `((let ((color (vari:swizzle (vari:texture sampler (/ (1+ coord) 2)) :r)))
-       (vari:vec4 color color color 1)))))
+   `((let* ((coord (/ (1+ coord) 2))
+            (clamped (vari:clamp coord (vari:vec3 0) (vari:vec3 1))))
+       (if (= coord clamped)
+           (let ((color (vari:swizzle (vari:texture sampler coord) :r)))
+             (vari:vec4 color color color 1))
+           (vari:discard))))))
 
 (defparameter *volume-program*
   (varjo:rolling-translate

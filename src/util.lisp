@@ -69,14 +69,21 @@
         (sin (sin ϕ)))
     (m3:make cos (- sin) Δu (+ sin) cos Δv 0.0 0.0 1.0)))
 
-(serapeum:-> world-transform-matrix
-    (rtg-math.types:vec3 rtg-math.types:vec3 rtg-math.types:vec3)
-    (values rtg-math.types:mat3 &optional))
-(defun world-transform-matrix (v1 v2 n)
+(serapeum:-> world-transform-matrix (rtg-math.types:vec3 rtg-math.types:vec3)
+             (values rtg-math.types:mat3 &optional))
+(defun world-transform-matrix (v n)
   (let* ((n  (v3:normalize n))
-         (τ1 (v3:normalize (v3:- v1 (v3:*s n (v3:dot n v1)))))
-         (τ2 (v3:normalize (v3:- v2 (v3:*s n (v3:dot n v2)) (v3:*s τ1 (v3:dot τ1 v2))))))
+         (v2 v)
+         (τ2 (v3:normalize (v3:- v2 (v3:*s n (v3:dot n v2)))))
+         (τ1 (v3:cross τ2 n)))
     (m3:from-columns τ1 τ2 n)))
+
+(serapeum:-> randomization-needed-p (rtg-math.types:vec3 rtg-math.types:vec3)
+             (values boolean &optional))
+(defun randomization-needed-p (v n)
+  (let ((n (v3:normalize n))
+        (v (v3:normalize v)))
+    (> (abs (v3:dot n v)) 0.95)))
 
 (serapeum:-> set-int-uniform (t string integer)
              (values &optional))

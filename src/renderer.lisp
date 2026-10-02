@@ -9,9 +9,8 @@
   (ϕ               0.0 :type single-float)
   (Δu              0.0 :type single-float)
   (Δv              0.0 :type single-float)
-  ;; Planar basis
-  (v1 (v3:make 1.0 0.0 0.0) :type rtg-math.types:vec3)
-  (v2 (v3:make 0.0 1.0 0.0) :type rtg-math.types:vec3)
+  ;; Random vector not collinear with n
+  (v (v3:make 0.0 1.0 0.0) :type rtg-math.types:vec3)
   ;; And a normal to the cutting plane
   (n  (v3:make 0.0 0.0 1.0) :type rtg-math.types:vec3)
   ;; Distance to the cutting plane
@@ -121,9 +120,8 @@
                               (scene-Δv scene)))
           (set-mat3-uniform  program "WORLD_TRANSFORM"
                              (world-transform-matrix
-                              (scene-v1 scene)
-                              (scene-v2 scene)
-                              (scene-n  scene))))
+                              (scene-v scene)
+                              (scene-n scene))))
         (gl:active-texture :texture0)
         (gl:bind-texture :texture-3d (context-volume-texture context))
         (gl:bind-vertex-array (context-vao context))
