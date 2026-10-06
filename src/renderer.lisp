@@ -4,8 +4,6 @@
 (deftype volume-gpu-uploader () '(function ((image 3)) (values &optional)))
 
 (defstruct scene
-  (slice-loaded-p  nil :type boolean)
-  (volume-loaded-p nil :type boolean)
   (ϕ               0.0 :type single-float)
   (Δu              0.0 :type single-float)
   (Δv              0.0 :type single-float)
@@ -28,6 +26,16 @@
   (slice-uploader  slice-gpu-uploader)
   (volume-uploader volume-gpu-uploader))
 
+(serapeum:-> volume-loaded-p (context)
+             (values boolean &optional))
+(defun volume-loaded-p (context)
+  (/= (context-volume-texture context) -1))
+
+(serapeum:-> slice-loaded-p (context)
+             (values boolean &optional))
+(defun slice-loaded-p (context)
+  (/= (context-slice-texture context) -1))
+
 ;; TODO: Determine it at runtime
 (defconstant +max-size+ 512)
 
@@ -38,26 +46,40 @@
     (if (> max-dim +max-size+)
         (nth-value 0 (ceiling (/ max-dim +max-size+))))))
 
-(serapeum:-> make-slice-uploader (gir::object-instance context scene)
+(serapeum:-> make-slice-uploader (gir::object-instance context)
              (values slice-gpu-uploader &optional))
-(defun make-slice-uploader (area context scene)
+(defun make-slice-uploader (area context)
   (lambda (slice)
     (gtk4:gl-area-make-current area)
-    (gl:bind-texture :texture-2d (context-slice-texture context))
+    ;; Delete an old texture if any
+    (when (slice-loaded-p context)
+      (gl:delete-texture (context-slice-texture context)))
+    ;; Create and upload a new texture
+    (let ((texture (gl:gen-texture)))
+      (gl:bind-texture :texture-2d texture)
+      (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+      (gl:tex-parameter :texture-2d :texture-min-filter :linear)
+      (setf (context-slice-texture context) texture))
     (fast-upload-slice slice)
-    (setf (scene-slice-loaded-p scene) t)
     (values)))
 
-(serapeum:-> make-volume-uploader (gir::object-instance context scene)
+(serapeum:-> make-volume-uploader (gir::object-instance context)
              (values volume-gpu-uploader &optional))
-(defun make-volume-uploader (area context scene)
+(defun make-volume-uploader (area context)
   (lambda (volume)
     (let* ((scale (downsample-scale volume))
            (volume (if scale (downsample3d volume scale) volume)))
       (gtk4:gl-area-make-current area)
-      (gl:bind-texture :texture-3d (context-volume-texture context))
+      ;; Delete an old texture if any
+      (when (volume-loaded-p context)
+        (gl:delete-texture (context-volume-texture context)))
+      ;; Create and upload a new texture
+      (let ((texture (gl:gen-texture)))
+        (gl:bind-texture :texture-3d texture)
+        (gl:tex-parameter :texture-3d :texture-mag-filter :linear)
+        (gl:tex-parameter :texture-3d :texture-min-filter :linear)
+        (setf (context-volume-texture context) texture))
       (fast-upload-volume volume)
-      (setf (scene-volume-loaded-p scene) t)
       (values))))
 
 (serapeum:-> make-realize-handler (context)
@@ -67,22 +89,12 @@
     (gtk4:gl-area-make-current area)
     (gl:clear-color 0.0 0.0 0.0 0.0)
 
-    (let ((slice-texture   (gl:gen-texture))
-          (volume-texture  (gl:gen-texture))
-          (slice-program   (create-program *slice-program*))
-          (volume-program  (create-program *volume-program*))
-          (vao             (gl:gen-vertex-array)))
-      (gl:bind-texture  :texture-2d slice-texture)
-      (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
-      (gl:tex-parameter :texture-2d :texture-min-filter :linear)
-      (gl:bind-texture  :texture-3d volume-texture)
-      (gl:tex-parameter :texture-3d :texture-mag-filter :linear)
-      (gl:tex-parameter :texture-3d :texture-min-filter :linear)
+    (let ((slice-program  (create-program *slice-program*))
+          (volume-program (create-program *volume-program*))
+          (vao            (gl:gen-vertex-array)))
       (setf (context-vao            context) vao
-            (context-slice-texture  context) slice-texture
             (context-slice-program  context) slice-program
-            (context-volume-program context) volume-program
-            (context-volume-texture context) volume-texture))
+            (context-volume-program context) volume-program))
     (values)))
 
 (serapeum:-> make-unrealize-handler (context)
@@ -93,8 +105,10 @@
     (gl:delete-vertex-array (context-vao context))
     (gl:delete-program (context-slice-program  context))
     (gl:delete-program (context-volume-program context))
-    (gl:delete-textures (list (context-slice-texture  context)
-                              (context-volume-texture context)))
+    (when (volume-loaded-p context)
+      (gl:delete-texture (context-volume-texture context)))
+    (when (slice-loaded-p context)
+      (gl:delete-texture (context-slice-texture context)))
     (values)))
 
 (serapeum:-> make-draw-handler (context scene)
@@ -107,7 +121,7 @@
     (gl:clear :color-buffer-bit)
     (let ((width   (gtk4:widget-width  area))
           (height  (gtk4:widget-height area)))
-      (when (scene-slice-loaded-p scene)
+      (when (slice-loaded-p context)
         ;; Render slice
         (gl:viewport 0 0 (floor width 2) height)
         (gl:use-program (context-slice-program context))
@@ -116,7 +130,7 @@
         (gl:bind-texture :texture-2d (context-slice-texture context))
         (gl:bind-vertex-array (context-vao context))
         (gl:draw-arrays :triangle-strip 0 4))
-      (when (scene-volume-loaded-p scene)
+      (when (volume-loaded-p context)
         ;; Render volume
         (gl:viewport (floor width 2) 0 (floor width 2) height)
         (let ((program (context-volume-program context)))
@@ -144,10 +158,11 @@
   (let ((area    (gtk4:make-gl-area))
         (context (make-context)))
     (setf (gtk4:gl-area-allowed-apis area) 1) ; OpenGL Only
+    (gir:invoke (area "set_required_version") 4 2)
     (gtk4:connect area "realize"   (make-realize-handler   context))
     (gtk4:connect area "unrealize" (make-unrealize-handler context))
     (gtk4:connect area "render"    (make-draw-handler      context scene))
     (renderer
      area
-     (make-slice-uploader  area context scene)
-     (make-volume-uploader area context scene))))
+     (make-slice-uploader  area context)
+     (make-volume-uploader area context))))
