@@ -191,11 +191,12 @@
           (lambda (pathname)
             (handler-case
                 (let ((volume (load-volume pathname)))
-                  (setf (gtk4:label-text status)
-                        (format nil "Volume with dimensions ~a loaded"
-                                (array-dimensions volume)))
-                  (funcall (renderer-volume-uploader renderer) volume)
-                  (gtk4:gl-area-queue-render (renderer-area renderer)))
+                  (when volume
+                    (setf (gtk4:label-text status)
+                          (format nil "Volume with dimensions ~a loaded"
+                                  (array-dimensions volume)))
+                    (funcall (renderer-volume-uploader renderer) volume)
+                    (gtk4:gl-area-queue-render (renderer-area renderer))))
               (error (c) (show-error-dialog window c)))))))
       (gtk4:connect
        slice-button "clicked"
@@ -206,11 +207,12 @@
           (lambda (pathname)
             (handler-case
                 (let ((slice (load-slice pathname)))
-                  (setf (gtk4:label-text status)
-                        (format nil "Slice with dimensions ~a loaded"
-                                (array-dimensions slice)))
-                  (funcall (renderer-slice-uploader renderer) slice)
-                  (gtk4:gl-area-queue-render (renderer-area renderer)))
+                  (when slice
+                    (setf (gtk4:label-text status)
+                          (format nil "Slice with dimensions ~a loaded"
+                                  (array-dimensions slice)))
+                    (funcall (renderer-slice-uploader renderer) slice)
+                    (gtk4:gl-area-queue-render (renderer-area renderer))))
               (error (c) (show-error-dialog window c))))))))
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))

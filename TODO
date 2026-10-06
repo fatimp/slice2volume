@@ -1,6 +1,6 @@
 Minor TODO list:
 
-Multipage TIFF support (1)
+Multipage TIFF support (1) (DONE)
 Faster downsampler (5)
 Determine maximal texture dimensions at runtime (but no more than 1000^3 or 1000^2). (2)
 Mutithreaded preprocessing (?) (4)
