@@ -31,7 +31,7 @@
                  (gl:get-program-info-log program))))
       program)))
 
-(serapeum:-> fast-upload-slice ((simple-array single-float (* *)))
+(serapeum:-> fast-upload-slice ((simple-array (unsigned-byte 8) (* *)))
              (values &optional))
 (defun fast-upload-slice (array)
   (declare (optimize (speed 3)))
@@ -40,9 +40,9 @@
     (gl:tex-storage-2d :texture-2d 1 :r8 w h)
     (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
       (gl:tex-sub-image-2d :texture-2d 0 0 0 w h
-                           :red :float ptr))))
+                           :red :unsigned-byte ptr))))
 
-(serapeum:-> fast-upload-volume ((simple-array single-float (* * *)))
+(serapeum:-> fast-upload-volume ((simple-array (unsigned-byte 8) (* * *)))
              (values &optional))
 (defun fast-upload-volume (array)
   (declare (optimize (speed 3)))
@@ -52,7 +52,7 @@
     (gl:tex-storage-3d :texture-3d 1 :r8 w h d)
     (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
       (gl:tex-sub-image-3d :texture-3d 0 0 0 0 w h d
-                           :red :float ptr))))
+                           :red :unsigned-byte ptr))))
 
 (serapeum:-> planar-transform-matrix (single-float single-float single-float)
              (values rtg-math.types:mat3 &optional))

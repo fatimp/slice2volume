@@ -1,6 +1,6 @@
 (in-package :slice2volume)
 
-(deftype image (n) `(simple-array single-float ,n))
+(deftype image (n) `(simple-array (unsigned-byte 8) ,n))
 
 (deftype slice-loader ()
   '(function (pathname) (values (image 2) &optional)))
@@ -8,29 +8,19 @@
 (deftype volume-loader ()
   '(function (pathname) (values (image 3) &optional)))
 
-(deftype normalizer ()
-  '(function (real) (values single-float &optional)))
-
-(declaim (ftype normalizer /255)
-         (inline           /255))
-(defun /255 (x)
-  (/ x 255.0))
-
-(declaim (ftype normalizer rgba-intensity)
-         (inline           rgba-intensity))
-(defun rgba-intensity (x)
-  (multiple-value-bind (r g b)
-      (tiff:split-rgba x)
-    (/ (+ r g b) 255.0)))
-
-(serapeum:-> normalize (normalizer simple-array)
-             (values (simple-array single-float) &optional))
-(declaim (inline normalize))
-(defun normalize (f xs)
+(serapeum:-> rgba-intensities ((simple-array (unsigned-byte 32)))
+             (values (simple-array (unsigned-byte 8)) &optional))
+(defun rgba-intensities (xs)
+  (declare (optimize (speed 3)))
   (let ((result (make-array (array-dimensions xs)
-                            :element-type 'single-float)))
-    (map-into (sb-ext:array-storage-vector result) f
-              (sb-ext:array-storage-vector xs))
+                            :element-type '(unsigned-byte 8))))
+    (map-into
+     (sb-ext:array-storage-vector result)
+     (lambda (color)
+       (multiple-value-bind (r g b)
+           (tiff:split-rgba color)
+         (floor (+ r g b) 3)))
+     (sb-ext:array-storage-vector xs))
     result))
 
 ;; Numpy format
@@ -45,10 +35,7 @@
              :slicep       t
              :dimensions   (array-dimensions array)
              :element-type (array-element-type array)))
-    ;; SBCL does not infere element type from the previous assertion
-    (let ((array array))
-      (declare (type (simple-array (unsigned-byte 8) 2) array))
-      (normalize #'/255 array))))
+    array))
 
 (declaim (ftype volume-loader numpy-volume-loader))
 (defun numpy-volume-loader (pathname)
@@ -61,10 +48,7 @@
              :slicep       nil
              :dimensions   (array-dimensions array)
              :element-type (array-element-type array)))
-    ;; SBCL does not infere element type from the previous assertion
-    (let ((array array))
-      (declare (type (simple-array (unsigned-byte 8) 3) array))
-      (normalize #'/255 array))))
+    array))
 
 ;; TIFF
 (serapeum:-> read-tiff-slice (tiff:tiff-handle unsigned-byte unsigned-byte)
@@ -74,9 +58,7 @@
 
 (declaim (ftype slice-loader tiff-slice-loader))
 (defun tiff-slice-loader (pathname)
-  (declare (optimize (speed 3)))
-  (normalize
-   #'rgba-intensity
+  (rgba-intensities
    (tiff:with-open-tiff (handle pathname :input)
      (let ((width  (tiff:width  handle))
            (height (tiff:height handle)))
@@ -134,4 +116,5 @@
                       (loaders :slice)
                       :test #'string=
                       :key  #'loader-type)))
-    (funcall (loader-slice loader) pathname)))
+    (when loader
+      (funcall (loader-slice loader) pathname))))

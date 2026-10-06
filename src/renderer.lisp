@@ -50,6 +50,7 @@
              (values slice-gpu-uploader &optional))
 (defun make-slice-uploader (area context)
   (lambda (slice)
+    (declare (type (image 2) slice))
     (gtk4:gl-area-make-current area)
     ;; Delete an old texture if any
     (when (slice-loaded-p context)
@@ -67,6 +68,7 @@
              (values volume-gpu-uploader &optional))
 (defun make-volume-uploader (area context)
   (lambda (volume)
+    (declare (type (image 3) volume))
     (let* ((scale (downsample-scale volume))
            (volume (if scale (downsample3d volume scale) volume)))
       (gtk4:gl-area-make-current area)
