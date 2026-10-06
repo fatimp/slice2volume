@@ -19,7 +19,8 @@
   (slice-texture  -1 :type fixnum)
   (volume-program -1 :type fixnum)
   (volume-texture -1 :type fixnum)
-  (vao            -1 :type fixnum))
+  (vao            -1 :type fixnum)
+  (texture-3d-size 0 :type (unsigned-byte 32)))
 
 (serapeum:defconstructor renderer
   (area            gir::object-instance)
@@ -36,8 +37,25 @@
 (defun slice-loaded-p (context)
   (/= (context-slice-texture context) -1))
 
-;; TODO: Determine it at runtime
-(defconstant +max-size+ 512)
+(defconstant +max-size-fallback+ 512)
+
+(serapeum:-> maximal-texture-dimension-3d ()
+             (values (unsigned-byte 32) &optional))
+(defun maximal-texture-dimension-3d ()
+  (flet ((texture-bad-p (n)
+           (gl:tex-storage-3d :proxy-texture-3d 1 :r8 n n n)
+           (let ((width  (gl:get-tex-level-parameter :proxy-texture-3d 0 :texture-width))
+                 (height (gl:get-tex-level-parameter :proxy-texture-3d 0 :texture-height))
+                 (depth  (gl:get-tex-level-parameter :proxy-texture-3d 0 :texture-depth)))
+             (or (zerop width)
+                 (zerop height)
+                 (zerop depth)))))
+    ;; We don't need bigger than 1000^3
+    (let ((size (loop for n from 1000 downto 200 by 100
+                      unless (texture-bad-p n) do (return n))))
+      (if size size
+          ;; Try it anyway. What else can we do?
+          +max-size-fallback+))))
 
 (serapeum:-> downsample-scale (simple-array)
              (values (or null (and (unsigned-byte 8) (integer 1))) &optional))
@@ -45,6 +63,15 @@
   (let ((max-dim (reduce #'max (array-dimensions array) :initial-value 0)))
     (if (> max-dim +max-size+)
         (nth-value 0 (ceiling (/ max-dim +max-size+))))))
+
+(serapeum:-> maybe-downsample-3d ((simple-array (unsigned-byte 8) (* * *))
+                                  (unsigned-byte 32))
+             (values (simple-array (unsigned-byte 8) (* * *)) &optional))
+(defun maybe-downsample-3d (array max-size)
+  (let ((max-dim (reduce #'max (array-dimensions array) :initial-value 0)))
+    (if (> max-dim max-size)
+        (downsample-3d array (ceiling (/ max-dim +max-size+)))
+        array)))
 
 (serapeum:-> make-slice-uploader (gir::object-instance context)
              (values slice-gpu-uploader &optional))
@@ -57,7 +84,7 @@
       (gl:delete-texture (context-slice-texture context)))
     ;; Create and upload a new texture
     (let ((texture (gl:gen-texture)))
-      (gl:bind-texture :texture-2d texture)
+      (gl:bind-texture  :texture-2d texture)
       (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
       (gl:tex-parameter :texture-2d :texture-min-filter :linear)
       (setf (context-slice-texture context) texture))
@@ -69,8 +96,7 @@
 (defun make-volume-uploader (area context)
   (lambda (volume)
     (declare (type (image 3) volume))
-    (let* ((scale (downsample-scale volume))
-           (volume (if scale (downsample3d volume scale) volume)))
+    (let ((volume (maybe-downsample-3d volume (context-texture-3d-size context))))
       (gtk4:gl-area-make-current area)
       ;; Delete an old texture if any
       (when (volume-loaded-p context)
@@ -94,9 +120,11 @@
     (let ((slice-program  (create-program *slice-program*))
           (volume-program (create-program *volume-program*))
           (vao            (gl:gen-vertex-array)))
-      (setf (context-vao            context) vao
-            (context-slice-program  context) slice-program
-            (context-volume-program context) volume-program))
+      (setf (context-vao             context) vao
+            (context-slice-program   context) slice-program
+            (context-volume-program  context) volume-program
+            (context-texture-3d-size context)
+            (maximal-texture-dimension-3d)))
     (values)))
 
 (serapeum:-> make-unrealize-handler (context)

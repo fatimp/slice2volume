@@ -2,6 +2,6 @@ Minor TODO list:
 
 Multipage TIFF support (1) (DONE)
 Faster downsampler (5)
-Determine maximal texture dimensions at runtime (but no more than 1000^3 or 1000^2). (2)
+Determine maximal texture dimensions at runtime (2) (DONE)
 Mutithreaded preprocessing (?) (4)
 Viewport configuration which preserves aspect ratio (3)
