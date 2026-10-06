@@ -28,6 +28,16 @@
   (slice-uploader  slice-gpu-uploader)
   (volume-uploader volume-gpu-uploader))
 
+;; TODO: Determine it at runtime
+(defconstant +max-size+ 512)
+
+(serapeum:-> downsample-scale (simple-array)
+             (values (or null (and (unsigned-byte 8) (integer 1))) &optional))
+(defun downsample-scale (array)
+  (let ((max-dim (reduce #'max (array-dimensions array) :initial-value 0)))
+    (if (> max-dim +max-size+)
+        (nth-value 0 (ceiling (/ max-dim +max-size+))))))
+
 (serapeum:-> make-slice-uploader (gir::object-instance getter scene)
              (values slice-gpu-uploader &optional))
 (defun make-slice-uploader (area getter scene)
@@ -43,12 +53,14 @@
              (values volume-gpu-uploader &optional))
 (defun make-volume-uploader (area getter scene)
   (lambda (volume)
-    (gtk4:gl-area-make-current area)
-    (let ((context (funcall getter)))
-      (gl:bind-texture :texture-3d (context-volume-texture context))
-      (fast-upload-volume volume))
-    (setf (scene-volume-loaded-p scene) t)
-    (values)))
+    (let* ((scale (downsample-scale volume))
+           (volume (if scale (downsample3d volume scale) volume)))
+      (gtk4:gl-area-make-current area)
+      (let ((context (funcall getter)))
+        (gl:bind-texture :texture-3d (context-volume-texture context))
+        (fast-upload-volume volume))
+      (setf (scene-volume-loaded-p scene) t)
+      (values))))
 
 (serapeum:-> make-realize-handler (setter)
              (values (function (gir::object-instance) (values &optional)) &optional))

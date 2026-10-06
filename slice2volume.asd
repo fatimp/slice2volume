@@ -11,6 +11,7 @@
                  (:file "util")
                  (:file "loaders")
                  (:file "shaders")
+                 (:file "downsample")
                  (:file "renderer")
                  (:file "application"))
     :depends-on (:cl-gtk4

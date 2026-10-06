@@ -113,3 +113,14 @@
   (v3:make (random 1.0)
            (random 1.0)
            (random 1.0)))
+
+(defmacro loop-ranges (ranges &body body)
+  (reduce
+   (lambda (entry acc)
+     (destructuring-bind (val below)
+         entry
+       `(dotimes (,val ,below)
+          ,acc)))
+   ranges
+   :from-end t
+   :initial-value `(progn ,@body)))
