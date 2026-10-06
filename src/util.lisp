@@ -1,15 +1,5 @@
 (in-package :slice2volume)
 
-(deftype getter () '(function ( ) (values t &optional)))
-(deftype setter () '(function (t) (values t &optional)))
-
-(defmacro with-place ((getter setter) &body body)
-  (let ((var (gensym)))
-    `(let (,var)
-       (flet ((,getter ()  (assert ,var) ,var)
-              (,setter (x) (setq ,var x)))
-         ,@body))))
-
 (defun create-shader (stage compiled-shader)
   (let ((shader (gl:create-shader stage)))
     (gl:shader-source shader (varjo:glsl-code compiled-shader))
