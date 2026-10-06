@@ -31,12 +31,25 @@
                  (gl:get-program-info-log program))))
       program)))
 
+(serapeum:-> set-pixel-alignment (simple-array)
+             (values &optional))
+(defun set-pixel-alignment (array)
+  (gl:pixel-store
+   :unpack-alignment
+   (if (every
+        (lambda (dim)
+          (zerop (mod dim 4)))
+        (array-dimensions array))
+       4 1))
+  (values))
+
 (serapeum:-> fast-upload-slice ((simple-array (unsigned-byte 8) (* *)))
              (values &optional))
 (defun fast-upload-slice (array)
   (declare (optimize (speed 3)))
   (let ((h (array-dimension array 0))
         (w (array-dimension array 1)))
+    (set-pixel-alignment array)
     (gl:tex-storage-2d :texture-2d 1 :r8 w h)
     (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
       (gl:tex-sub-image-2d :texture-2d 0 0 0 w h
@@ -49,6 +62,7 @@
   (let ((d (array-dimension array 0))
         (h (array-dimension array 1))
         (w (array-dimension array 2)))
+    (set-pixel-alignment array)
     (gl:tex-storage-3d :texture-3d 1 :r8 w h d)
     (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
       (gl:tex-sub-image-3d :texture-3d 0 0 0 0 w h d
