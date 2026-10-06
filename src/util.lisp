@@ -116,3 +116,19 @@
    ranges
    :from-end t
    :initial-value `(progn ,@body)))
+
+(serapeum:-> viewport-dimensions ((integer 1) (integer 1) (integer 1) (integer 1))
+             (values (integer 0) (integer 0) (integer 1) (integer 1) &optional))
+(defun viewport-dimensions (image-width image-height area-width area-height)
+  "Returns X, Y, WIDTH and HEIGHT parameters of a viewport."
+  (let ((image-ratio (/ image-width image-height))
+        (area-ratio  (/ area-width  area-height)))
+    (if (< area-ratio image-ratio)
+        (let ((viewport-width  area-width)
+              (viewport-height (floor (/ area-width image-ratio))))
+          (values 0 (floor (- area-height viewport-height) 2)
+                  viewport-width viewport-height))
+        (let ((viewport-width  (floor (* area-height image-ratio)))
+              (viewport-height area-height))
+          (values (floor (- area-width viewport-width) 2) 0
+                  viewport-width viewport-height)))))
