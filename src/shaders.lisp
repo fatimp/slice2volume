@@ -70,3 +70,63 @@
   (varjo:rolling-translate
    (list *volume-vertex-shader*
          *volume-fragment-shader*)))
+
+(declaim (type varjo.internals:vertex-stage *cube-vertex-shader*))
+(defparameter *cube-vertex-shader*
+  (varjo:make-stage
+   :vertex
+   '((vertex     :vec3)) ; Cube vertex coordinate
+   '((projection :mat4)) ; Projection to the screen
+   '(:330)
+   `((* projection (vari:vec4 vertex 1)))))
+
+(declaim (type varjo.internals:fragment-stage *cube-fragment-shader*))
+(defparameter *cube-fragment-shader*
+  (varjo:make-stage
+   :fragment
+   '() ; No inputs
+   '() ; No uniforms
+   '(:330)
+   `((vari:vec4 1.0 0.0 0.0 1.0))))
+
+(defparameter *cube-program*
+  (varjo:rolling-translate
+   (list *cube-vertex-shader*
+         *cube-fragment-shader*)))
+
+(declaim (type varjo.internals:vertex-stage *plane-vertex-shader*))
+(defparameter *plane-vertex-shader*
+  (varjo:make-stage
+   :vertex
+   '()                        ; No inputs
+   '((world-transform :mat3)  ; Planar space to world coordinates
+     (dist            :float) ; Distance to the cutting plane from the origin
+     (projection      :mat4)) ; Projection to the screen
+   '(:330)
+   `((let* ((square (vector
+                     (vari:vec2 -3 -3)
+                     (vari:vec2 +3 -3)
+                     (vari:vec2 -3 +3)
+                     (vari:vec2 +3 +3)))
+            (v (aref square vari:gl-vertex-id))
+            (vaug  (vari:vec3 v dist))
+            (world (* world-transform vaug)))
+       (values (* projection (vari:vec4 world 1))
+               world)))))
+
+(declaim (type varjo.internals:fragment-stage *plane-fragment-shader*))
+(defparameter *plane-fragment-shader*
+  (varjo:make-stage
+   :fragment
+   '((coord :vec3)) ; Fragment coordinate
+   '()
+   '(:330)
+   `((let ((clamped (vari:clamp coord (vari:vec3 -1) (vari:vec3 1))))
+       (if (= coord clamped)
+           (vari:vec4 0 0 1 1)
+           (vari:discard))))))
+
+(defparameter *plane-program*
+  (varjo:rolling-translate
+   (list *plane-vertex-shader*
+         *plane-fragment-shader*)))

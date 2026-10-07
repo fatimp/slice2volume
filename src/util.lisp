@@ -55,6 +55,10 @@
       (gl:tex-sub-image-2d :texture-2d 0 0 0 w h
                            :red :unsigned-byte ptr))))
 
+(defun fast-upload-buffer (target vector)
+  (cffi:with-pointer-to-vector-data (ptr vector)
+    (%gl:buffer-data target (* 4 (length vector)) ptr :static-draw)))
+
 (serapeum:-> fast-upload-volume ((simple-array (unsigned-byte 8) (* * *)))
              (values &optional))
 (defun fast-upload-volume (array)
@@ -104,6 +108,13 @@
 (defun set-mat3-uniform (program uniform m)
   (let ((location (gl:get-uniform-location program uniform)))
     (gl:uniform-matrix location 3 (vector m) nil))
+  (values))
+
+(serapeum:-> set-mat4-uniform (t string rtg-math.types:mat4)
+             (values &optional))
+(defun set-mat4-uniform (program uniform m)
+  (let ((location (gl:get-uniform-location program uniform)))
+    (gl:uniform-matrix location 4 (vector m) nil))
   (values))
 
 (serapeum:-> set-float-uniform (t string single-float)

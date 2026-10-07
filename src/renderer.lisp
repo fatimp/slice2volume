@@ -19,7 +19,12 @@
   (slice-texture  -1 :type fixnum)
   (volume-program -1 :type fixnum)
   (volume-texture -1 :type fixnum)
-  (vao            -1 :type fixnum)
+  (empty-vao      -1 :type fixnum)
+  (cube-program   -1 :type fixnum)
+  (cube-vao       -1 :type fixnum)
+  (cube-vbo       -1 :type fixnum)
+  (cube-ebo       -1 :type fixnum)
+  (plane-program  -1 :type fixnum)
   (texture-3d-size 0 :type (unsigned-byte 32)))
 
 (serapeum:defconstructor renderer
@@ -112,10 +117,30 @@
 
     (let ((slice-program  (create-program *slice-program*))
           (volume-program (create-program *volume-program*))
-          (vao            (gl:gen-vertex-array)))
-      (setf (context-vao             context) vao
+          (cube-program   (create-program *cube-program*))
+          (plane-program  (create-program *plane-program*))
+          (empty-vao      (gl:gen-vertex-array))
+          (cube-vao       (gl:gen-vertex-array))
+          (cube-vbo       (gl:gen-buffer))
+          (cube-ebo       (gl:gen-buffer)))
+
+      (gl:bind-vertex-array cube-vao)
+      (gl:enable-vertex-attrib-array 0)
+      (gl:bind-buffer     :array-buffer         cube-vbo)
+      (fast-upload-buffer :array-buffer         +cube-vertices+)
+      (gl:bind-buffer     :element-array-buffer cube-ebo)
+      (fast-upload-buffer :element-array-buffer +cube-indices+)
+      (gl:vertex-attrib-pointer 0 3 :float nil 0 0)
+      (gl:bind-vertex-array 0)
+
+      (setf (context-empty-vao       context) empty-vao
+            (context-cube-vao        context) cube-vao
             (context-slice-program   context) slice-program
             (context-volume-program  context) volume-program
+            (context-cube-program    context) cube-program
+            (context-cube-vbo        context) cube-vbo
+            (context-cube-ebo        context) cube-ebo
+            (context-plane-program   context) plane-program
             (context-texture-3d-size context)
             (maximal-texture-dimension-3d)))
     (values)))
@@ -125,9 +150,14 @@
 (defun make-unrealize-handler (context)
   (lambda (area)
     (gtk4:gl-area-make-current area)
-    (gl:delete-vertex-array (context-vao context))
+    (gl:delete-vertex-arrays (list (context-empty-vao context)
+                                   (context-cube-vao  context)))
+    (gl:delete-buffers (list (context-cube-vbo context)
+                             (context-cube-ebo context)))
     (gl:delete-program (context-slice-program  context))
     (gl:delete-program (context-volume-program context))
+    (gl:delete-program (context-cube-program   context))
+    (gl:delete-program (context-plane-program  context))
     (when (volume-loaded-p context)
       (gl:delete-texture (context-volume-texture context)))
     (when (slice-loaded-p context)
@@ -156,7 +186,7 @@
         (gl:use-program (context-slice-program context))
         (set-int-uniform (context-slice-program context) "SAMPLER" 0)
         (gl:active-texture :texture0)
-        (gl:bind-vertex-array (context-vao context))
+        (gl:bind-vertex-array (context-empty-vao context))
         (gl:draw-arrays :triangle-strip 0 4))
       (when (volume-loaded-p context)
         ;; Render volume
@@ -181,7 +211,37 @@
                               (scene-v scene)
                               (scene-n scene))))
         (gl:active-texture :texture0)
-        (gl:bind-vertex-array (context-vao context))
+        (gl:bind-vertex-array (context-empty-vao context))
+        (gl:draw-arrays :triangle-strip 0 4))
+      ;; Draw slice orientation
+      ;; Firstly, draw a cube
+      (let* ((width  (floor area-width  3))
+             (height (floor area-height 6))
+             (projection (m4:*
+                          (proj:perspective
+                           (float width)
+                           (float height)
+                           0.1 5.0 75.0)
+                          (m4:look-at
+                           (v3:make 0.0 1.0 0.0)
+                           (v3:make -1.5 1.5 2.0)
+                           (v3:make 0.0 0.0 0.0)))))
+        (gl:viewport 0 0 width height)
+        (let ((program (context-cube-program context)))
+          (gl:use-program program)
+          (set-mat4-uniform program "PROJECTION" projection))
+        (gl:bind-vertex-array (context-cube-vao context))
+        (%gl:draw-elements :lines 24 :unsigned-int 0)
+        ;; Secondly, draw a plane
+        (let ((program (context-plane-program context)))
+          (gl:use-program program)
+          (set-mat4-uniform  program "PROJECTION" projection)
+          (set-float-uniform program "DIST" (scene-d scene))
+          (set-mat3-uniform  program "WORLD_TRANSFORM"
+                             (world-transform-matrix
+                              (scene-v scene)
+                              (scene-n scene))))
+        (gl:bind-vertex-array (context-empty-vao context))
         (gl:draw-arrays :triangle-strip 0 4)))
     (values)))
 

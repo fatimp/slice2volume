@@ -12,6 +12,7 @@
                  (:file "loaders")
                  (:file "shaders")
                  (:file "downsample")
+                 (:file "cube-vertices")
                  (:file "renderer")
                  (:file "application"))
     :depends-on (:cl-gtk4
@@ -19,6 +20,7 @@
                  :cl-opengl
                  :rtg-math
                  :serapeum
+                 :alexandria
                  :numpy-npy
                  :cl-libtiff)
     :build-operation program-op
