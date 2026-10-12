@@ -1,5 +1,14 @@
 (in-package :slice2volume)
 
+(macrolet ((frob (type)
+             `(varjo:define-vari-function texcoord ((space-coord ,type))
+                (let ((res (/ (1+ space-coord) 2)))
+                  (setf (vari:swizzle res :y)
+                        (- 1 (vari:swizzle res :y)))
+                  res))))
+  (frob :vec2)
+  (frob :vec3))
+
 (declaim (type varjo.internals:vertex-stage *slice-vertex-shader*))
 (defparameter *slice-vertex-shader*
   (varjo:make-stage
@@ -23,7 +32,7 @@
    '((coord :vec2))         ; Texture coordinate
    '((sampler :sampler-2d)) ; Texture sampler
    '(:330)
-   `((let ((color (vari:swizzle (vari:texture sampler (/ (1+ coord) 2)) :r)))
+   `((let ((color (vari:swizzle (vari:texture sampler (texcoord coord)) :r)))
        (vari:vec4 color color color 1)))))
 
 (defparameter *slice-program*
@@ -59,7 +68,7 @@
    '((coord :vec3))         ; Texture coordinate
    '((sampler :sampler-3d)) ; Texture sampler
    '(:330)
-   `((let* ((coord (/ (1+ coord) 2))
+   `((let* ((coord (texcoord coord) 2)
             (clamped (vari:clamp coord (vari:vec3 0) (vari:vec3 1))))
        (if (= coord clamped)
            (let ((color (vari:swizzle (vari:texture sampler coord) :r)))
