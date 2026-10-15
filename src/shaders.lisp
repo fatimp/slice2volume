@@ -29,7 +29,7 @@
 (defparameter *slice-fragment-shader*
   (varjo:make-stage
    :fragment
-   '((coord :vec2))         ; Texture coordinate
+   '((coord   :vec2))       ; Texture coordinate
    '((sampler :sampler-2d)) ; Texture sampler
    '(:330)
    `((let ((color (vari:swizzle (vari:texture sampler (texcoord coord)) :r)))
@@ -65,7 +65,7 @@
 (defparameter *volume-fragment-shader*
   (varjo:make-stage
    :fragment
-   '((coord :vec3))         ; Texture coordinate
+   '((coord   :vec3))       ; Texture coordinate
    '((sampler :sampler-3d)) ; Texture sampler
    '(:330)
    `((let* ((coord (texcoord coord) 2)
