@@ -164,6 +164,19 @@
       (gl:delete-texture (context-slice-texture context)))
     (values)))
 
+(serapeum:-> plane-world-transform (scene)
+             (values rtg-math.types:mat3 &optional))
+(defun plane-world-transform (scene)
+  (m3:*
+   (world-transform-matrix
+    (scene-v scene)
+    (scene-n scene))
+   (diagonal3 1.0 1.0 (scene-d scene))
+   (planar-transform-matrix
+    (scene-ϕ scene)
+    (scene-Δu scene)
+    (scene-Δv scene))))
+
 (serapeum:-> make-draw-handler (context scene)
              (values (function (gir::object-instance gir::object-instance)
                                (values boolean &optional))
@@ -201,15 +214,7 @@
           (gl:use-program program)
           (set-int-uniform  program "SAMPLER" 0)
           (set-mat3-uniform program "TRANSFORM"
-                            (m3:*
-                             (world-transform-matrix
-                              (scene-v scene)
-                              (scene-n scene))
-                             (diagonal3 1.0 1.0 (scene-d scene))
-                             (planar-transform-matrix
-                              (scene-ϕ scene)
-                              (scene-Δu scene)
-                              (scene-Δv scene)))))
+                            (plane-world-transform scene)))
         (gl:active-texture :texture0)
         (gl:bind-vertex-array (context-empty-vao context))
         (gl:draw-arrays :triangle-strip 0 4))
