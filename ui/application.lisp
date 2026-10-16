@@ -1,24 +1,24 @@
 (in-package :slice2volume/ui)
 
-(serapeum:-> add-filters-to-file-chooser-dialog (gir::object-instance loader-type)
+(serapeum:-> add-filters-to-file-chooser-dialog (gir::object-instance lib:loader-type)
              (values &optional))
 (defun add-filters-to-file-chooser-dialog (dialog type)
-  (let ((loaders (loaders type)))
+  (let ((loaders (lib:loaders type)))
     (loop for loader in loaders
           for filter = (gtk4:make-file-filter) do
-            (gtk4:file-filter-add-suffix filter (loader-type loader))
-            (setf (gtk4:file-filter-name filter) (loader-description loader))
+            (gtk4:file-filter-add-suffix filter (lib:loader-type loader))
+            (setf (gtk4:file-filter-name filter) (lib:loader-description loader))
             (gtk4:file-chooser-add-filter dialog filter))
     (when (cdr loaders)
       (loop with filter = (gtk4:make-file-filter)
             for loader in loaders do
-              (gtk4:file-filter-add-suffix filter (loader-type loader))
+              (gtk4:file-filter-add-suffix filter (lib:loader-type loader))
             finally
                (setf (gtk4:file-filter-name filter) "All supported formats")
                (gtk4:file-chooser-add-filter dialog filter))))
   (values))
 
-(serapeum:-> file-chooser-dialog (gir::object-instance loader-type
+(serapeum:-> file-chooser-dialog (gir::object-instance lib:loader-type
                                   (function (pathname) (values &optional)))
              (values &optional))
 (defun file-chooser-dialog (parent-window type callback)
@@ -190,7 +190,7 @@
           window :volume
           (lambda (pathname)
             (handler-case
-                (let ((volume (load-volume pathname)))
+                (let ((volume (lib:load-volume pathname)))
                   (when volume
                     (setf (gtk4:label-text status)
                           (format nil "Volume with dimensions ~a loaded"
@@ -206,7 +206,7 @@
           window :slice
           (lambda (pathname)
             (handler-case
-                (let ((slice (load-slice pathname)))
+                (let ((slice (lib:load-slice pathname)))
                   (when slice
                     (setf (gtk4:label-text status)
                           (format nil "Slice with dimensions ~a loaded"

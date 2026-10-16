@@ -1,7 +1,7 @@
 (in-package :slice2volume/ui)
 
-(deftype slice-gpu-uploader  () '(function ((image 2)) (values &optional)))
-(deftype volume-gpu-uploader () '(function ((image 3)) (values &optional)))
+(deftype slice-gpu-uploader  () '(function ((lib:image 2)) (values &optional)))
+(deftype volume-gpu-uploader () '(function ((lib:image 3)) (values &optional)))
 
 (defstruct scene
   (ϕ               0.0 :type single-float)
@@ -68,14 +68,14 @@
 (defun maybe-downsample-3d (array max-size)
   (let ((max-dim (reduce #'max (array-dimensions array) :initial-value 0)))
     (if (> max-dim max-size)
-        (downsample-3d array (ceiling (/ max-dim max-size)))
+        (lib:downsample-3d array (ceiling (/ max-dim max-size)))
         array)))
 
 (serapeum:-> make-slice-uploader (gir::object-instance context)
              (values slice-gpu-uploader &optional))
 (defun make-slice-uploader (area context)
   (lambda (slice)
-    (declare (type (image 2) slice))
+    (declare (type (lib:image 2) slice))
     (gtk4:gl-area-make-current area)
     ;; Delete an old texture if any
     (when (slice-loaded-p context)
@@ -93,7 +93,7 @@
              (values volume-gpu-uploader &optional))
 (defun make-volume-uploader (area context)
   (lambda (volume)
-    (declare (type (image 3) volume))
+    (declare (type (lib:image 3) volume))
     (let ((volume (maybe-downsample-3d volume (context-texture-3d-size context))))
       (gtk4:gl-area-make-current area)
       ;; Delete an old texture if any

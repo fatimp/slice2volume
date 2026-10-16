@@ -1,3 +1,19 @@
+(defsystem :slice2volume/library
+    :name :slice2volume/library
+    :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
+    :description "A tool for slice 2 volume registration (Library)"
+    :license "2-clause BSD"
+    :serial t
+    :pathname "library"
+    :components ((:file "package")
+                 (:file "conditions")
+                 (:file "loaders")
+                 (:file "downsample"))
+    :depends-on (:serapeum
+                 :alexandria
+                 :numpy-npy
+                 :cl-libtiff))
+
 (defsystem :slice2volume/ui
     :name :slice2volume/ui
     :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
@@ -6,11 +22,8 @@
     :serial t
     :pathname "ui"
     :components ((:file "package")
-                 (:file "conditions")
                  (:file "util")
-                 (:file "loaders")
                  (:file "shaders")
-                 (:file "downsample")
                  (:file "cube-vertices")
                  (:file "renderer")
                  (:file "application"))
@@ -20,8 +33,7 @@
                  :rtg-math
                  :serapeum
                  :alexandria
-                 :numpy-npy
-                 :cl-libtiff)
+                 :slice2volume/library)
     :build-operation program-op
     :build-pathname "slice2volume-ui"
     :entry-point "slice2volume/ui:slice2volume")

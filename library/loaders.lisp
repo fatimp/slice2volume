@@ -1,4 +1,4 @@
-(in-package :slice2volume/ui)
+(in-package :slice2volume/library)
 
 (deftype image (n) `(simple-array (unsigned-byte 8) ,n))
 

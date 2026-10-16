@@ -1,4 +1,15 @@
-(in-package :slice2volume/ui)
+(in-package :slice2volume/library)
+
+(defmacro loop-ranges (ranges &body body)
+  (reduce
+   (lambda (entry acc)
+     (destructuring-bind (val below)
+         entry
+       `(dotimes (,val ,below)
+          ,acc)))
+   ranges
+   :from-end t
+   :initial-value `(progn ,@body)))
 
 (serapeum:-> downsample-3d ((simple-array (unsigned-byte 8) (* * *))
                             (integer 1 255))
