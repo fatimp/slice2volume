@@ -199,17 +199,17 @@
           (gl:viewport (+ area-width x) y width height))
         (let ((program (context-volume-program context)))
           (gl:use-program program)
-          (set-int-uniform   program "SAMPLER" 0)
-          (set-float-uniform program "DIST" (scene-d scene))
-          (set-mat3-uniform  program "PLANAR_TRANSFORM"
+          (set-int-uniform  program "SAMPLER" 0)
+          (set-mat3-uniform program "TRANSFORM"
+                            (m3:*
+                             (world-transform-matrix
+                              (scene-v scene)
+                              (scene-n scene))
+                             (diagonal3 1.0 1.0 (scene-d scene))
                              (planar-transform-matrix
                               (scene-ϕ scene)
                               (scene-Δu scene)
-                              (scene-Δv scene)))
-          (set-mat3-uniform  program "WORLD_TRANSFORM"
-                             (world-transform-matrix
-                              (scene-v scene)
-                              (scene-n scene))))
+                              (scene-Δv scene)))))
         (gl:active-texture :texture0)
         (gl:bind-vertex-array (context-empty-vao context))
         (gl:draw-arrays :triangle-strip 0 4))

@@ -44,22 +44,17 @@
 (defparameter *volume-vertex-shader*
   (varjo:make-stage
    :vertex
-   '()                          ; No inputs
-   '((planar-transform :mat3)   ; Planar space transform
-     (world-transform  :mat3)   ; Planar space to world coordinates
-     (dist             :float)) ; Distance to the cutting plane from the origin
+   '()                  ; No inputs
+   '((transform :mat3)) ; Planar space to world coordinates
    '(:330)
    `((let* ((square (vector
                      (vari:vec2 -1 -1)
                      (vari:vec2 +1 -1)
                      (vari:vec2 -1 +1)
                      (vari:vec2 +1 +1)))
-            (v (aref square vari:gl-vertex-id))
-            (vaug  (vari:vec3 v 1))
-            (vtran (* planar-transform vaug))
-            (world (* world-transform (* vtran (vari:vec3 1 1 dist)))))
+            (v (aref square vari:gl-vertex-id)))
        (values (vari:vec4 v 0 1)
-               world)))))
+               (* transform (vari:vec3 v 1)))))))
 
 (declaim (type varjo.internals:fragment-stage *volume-fragment-shader*))
 (defparameter *volume-fragment-shader*

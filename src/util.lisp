@@ -157,3 +157,9 @@
               (viewport-height area-height))
           (values (floor (- area-width viewport-width) 2) 0
                   viewport-width viewport-height)))))
+
+(serapeum:-> diagonal3 (single-float single-float single-float)
+             (values rtg-math.types:mat3 &optional))
+(declaim (inline diagonal3))
+(defun diagonal3 (a b c)
+  (m3:make a 0.0 0.0 0.0 b 0.0 0.0 0.0 c))
