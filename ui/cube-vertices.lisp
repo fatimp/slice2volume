@@ -1,4 +1,4 @@
-(in-package :slice2volume)
+(in-package :slice2volume/ui)
 
 (alexandria:define-constant +cube-vertices+
   #a(24 single-float

@@ -1,4 +1,4 @@
-(in-package :slice2volume)
+(in-package :slice2volume/ui)
 
 (serapeum:-> downsample-3d ((simple-array (unsigned-byte 8) (* * *))
                             (integer 1 255))

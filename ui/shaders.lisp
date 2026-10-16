@@ -1,4 +1,4 @@
-(in-package :slice2volume)
+(in-package :slice2volume/ui)
 
 (macrolet ((frob (type)
              `(varjo:define-vari-function texcoord ((space-coord ,type))

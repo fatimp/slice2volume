@@ -1,4 +1,4 @@
-(in-package :slice2volume)
+(in-package :slice2volume/ui)
 
 (deftype slice-gpu-uploader  () '(function ((image 2)) (values &optional)))
 (deftype volume-gpu-uploader () '(function ((image 3)) (values &optional)))

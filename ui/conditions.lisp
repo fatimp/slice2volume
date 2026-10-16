@@ -1,4 +1,4 @@
-(in-package :slice2volume)
+(in-package :slice2volume/ui)
 
 (define-condition slice2volume-error (error)
   ()

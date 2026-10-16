@@ -1,4 +1,4 @@
-(in-package :slice2volume)
+(in-package :slice2volume/ui)
 
 (serapeum:-> add-filters-to-file-chooser-dialog (gir::object-instance loader-type)
              (values &optional))

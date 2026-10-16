@@ -1,4 +1,4 @@
-(in-package :slice2volume)
+(in-package :slice2volume/ui)
 
 (defun create-shader (stage compiled-shader)
   (let ((shader (gl:create-shader stage)))

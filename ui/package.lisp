@@ -1,4 +1,4 @@
-(defpackage slice2volume
+(defpackage slice2volume/ui
   (:use #:cl)
   (:local-nicknames (#:tiff #:cl-libtiff)
                     (#:v3   #:rtg-math.vector3)
