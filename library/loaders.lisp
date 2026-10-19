@@ -1,4 +1,41 @@
-(in-package :slice2volume/library)
+(defpackage slice2volume/loaders
+  (:use #:cl)
+  (:local-nicknames (#:tiff #:cl-libtiff))
+  (:export
+   ;; Conditions
+   #:loader-error
+   ;; Types
+   #:image
+   #:slice-loader
+   #:volume-loader
+   #:loader
+   ;; Functions
+   #:loader-type
+   #:loader-description
+   #:loaders
+   #:load-volume
+   #:load-slice))
+(in-package :slice2volume/loaders)
+
+(define-condition loader-error (error)
+  ((slicep       :reader  loader-error-slice-p
+                 :initarg :slicep)
+   (dimensions   :reader  loader-error-dimensions
+                 :initarg :dimensions)
+   (element-type :reader  loader-error-element-type
+                 :initarg :element-type))
+  (:documentation "Signalled when a loaded image has wrong dimensions and/or element-type.")
+  (:report
+   (lambda (c s)
+     (format s
+             #.(concatenate
+                'string
+                "Wrong array with dimensions ~a and element type ~a.~%"
+                "Should be a ~d-dimensional array of dtype='uint8'")
+             (loader-error-dimensions   c)
+             (loader-error-element-type c)
+             (if (loader-error-slice-p  c)
+                 2 3)))))
 
 (deftype image (n) `(simple-array (unsigned-byte 8) ,n))
 

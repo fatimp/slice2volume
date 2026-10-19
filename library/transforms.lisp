@@ -1,4 +1,22 @@
-(in-package :slice2volume/library)
+(defpackage slice2volume/transforms
+  (:use #:cl)
+  (:export
+   ;; Types
+   #:trans-param
+   ;; Constructors
+   #:make-trans-param
+   ;; Accessors
+   #:trans-param-α
+   #:trans-param-Δu
+   #:trans-param-Δv
+   #:trans-param-d
+   #:trans-param-ϕ
+   #:trans-param-ψ
+   ;; Functions
+   #:plane-world-transform
+   #:store-trans-param
+   #:load-trans-param))
+(in-package :slice2volume/transforms)
 
 (serapeum:-> diagonal3 (single-float single-float single-float)
              (values rtg-math.types:mat3 &optional))

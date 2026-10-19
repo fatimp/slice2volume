@@ -1,4 +1,8 @@
-(in-package :slice2volume/library)
+(defpackage slice2volume/slicer
+  (:use #:cl)
+  (:local-nicknames (#:ff #:float-features))
+  (:export #:slice))
+(in-package :slice2volume/slicer)
 
 (declaim (inline interp1d))
 (defun interp1d (v0 v1 x)

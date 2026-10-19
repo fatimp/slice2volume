@@ -1,4 +1,7 @@
-(in-package :slice2volume/library)
+(defpackage slice2volume/histogram
+  (:use #:cl)
+  (:export #:normalize-image))
+(in-package :slice2volume/histogram)
 
 (serapeum:-> scan-vector (vector)
              (values vector &optional))

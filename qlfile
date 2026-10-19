@@ -8,3 +8,4 @@ github shamazmazum/cl-libtiff :tag v0.1
 ql alexandria
 ql float-features
 ql cl-store
+asdf 3.3.7

@@ -1,4 +1,7 @@
-(in-package :slice2volume/library)
+(defpackage slice2volume/downsample
+  (:use #:cl)
+  (:export #:downsample-3d))
+(in-package :slice2volume/downsample)
 
 (defmacro loop-ranges (ranges &body body)
   (reduce

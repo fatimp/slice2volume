@@ -1,7 +1,7 @@
 (in-package :slice2volume/ui)
 
-(deftype slice-gpu-uploader  () '(function ((lib:image 2)) (values &optional)))
-(deftype volume-gpu-uploader () '(function ((lib:image 3)) (values &optional)))
+(deftype slice-gpu-uploader  () '(function ((load:image 2)) (values &optional)))
+(deftype volume-gpu-uploader () '(function ((load:image 3)) (values &optional)))
 
 (defstruct context
   (slice-program  -1 :type fixnum)
@@ -57,14 +57,14 @@
 (defun maybe-downsample-3d (array max-size)
   (let ((max-dim (reduce #'max (array-dimensions array) :initial-value 0)))
     (if (> max-dim max-size)
-        (lib:downsample-3d array (ceiling (/ max-dim max-size)))
+        (down:downsample-3d array (ceiling (/ max-dim max-size)))
         array)))
 
 (serapeum:-> make-slice-uploader (gir::object-instance context)
              (values slice-gpu-uploader &optional))
 (defun make-slice-uploader (area context)
   (lambda (slice)
-    (declare (type (lib:image 2) slice))
+    (declare (type (load:image 2) slice))
     (gtk4:gl-area-make-current area)
     ;; Delete an old texture if any
     (when (slice-loaded-p context)
@@ -82,7 +82,7 @@
              (values volume-gpu-uploader &optional))
 (defun make-volume-uploader (area context)
   (lambda (volume)
-    (declare (type (lib:image 3) volume))
+    (declare (type (load:image 3) volume))
     (let ((volume (maybe-downsample-3d volume (context-texture-3d-size context))))
       (gtk4:gl-area-make-current area)
       ;; Delete an old texture if any
@@ -153,7 +153,7 @@
       (gl:delete-texture (context-slice-texture context)))
     (values)))
 
-(serapeum:-> make-draw-handler (context lib:trans-param)
+(serapeum:-> make-draw-handler (context tran:trans-param)
              (values (function (gir::object-instance gir::object-instance)
                                (values boolean &optional))
                      &optional))
@@ -190,7 +190,7 @@
           (gl:use-program program)
           (set-int-uniform  program "SAMPLER" 0)
           (set-mat3-uniform program "TRANSFORM"
-                            (lib:plane-world-transform scene)))
+                            (tran:plane-world-transform scene)))
         (gl:active-texture :texture0)
         (gl:bind-vertex-array (context-empty-vao context))
         (gl:draw-arrays :triangle-strip 0 4))
@@ -218,12 +218,12 @@
           (gl:use-program program)
           (set-mat4-uniform program "PROJECTION" projection)
           (set-mat3-uniform program "TRANSFORM"
-                            (lib:plane-world-transform scene)))
+                            (tran:plane-world-transform scene)))
         (gl:bind-vertex-array (context-empty-vao context))
         (gl:draw-arrays :triangle-strip 0 4)))
     (values)))
 
-(serapeum:-> make-drawing-area (lib:trans-param)
+(serapeum:-> make-drawing-area (tran:trans-param)
              (values renderer &optional))
 (defun make-drawing-area (scene)
   (let ((area    (gtk4:make-gl-area))
