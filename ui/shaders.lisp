@@ -63,7 +63,7 @@
    '((coord   :vec3))       ; Texture coordinate
    '((sampler :sampler-3d)) ; Texture sampler
    '(:330)
-   `((let* ((coord (texcoord coord) 2)
+   `((let* ((coord (texcoord coord))
             (clamped (vari:clamp coord (vari:vec3 0) (vari:vec3 1))))
        (if (= coord clamped)
            (let ((color (vari:swizzle (vari:texture sampler coord) :r)))
