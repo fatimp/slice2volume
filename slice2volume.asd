@@ -9,12 +9,14 @@
                  (:file "conditions")
                  (:file "loaders")
                  (:file "transforms")
-                 (:file "downsample"))
+                 (:file "downsample")
+                 (:file "slicer"))
     :depends-on (:serapeum
                  :alexandria
                  :numpy-npy
                  :cl-libtiff
-                 :rtg-math))
+                 :rtg-math
+                 :float-features))
 
 (defsystem :slice2volume/ui
     :name :slice2volume/ui
