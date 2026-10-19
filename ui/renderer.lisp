@@ -4,16 +4,14 @@
 (deftype volume-gpu-uploader () '(function ((lib:image 3)) (values &optional)))
 
 (defstruct scene
-  (α               0.0 :type single-float)
-  (Δu              0.0 :type single-float)
-  (Δv              0.0 :type single-float)
-  ;; Random vector not collinear with n
-  (v (v3:make 0.0 1.0 0.0) :type rtg-math.types:vec3)
+  (α  0.0 :type single-float)
+  (Δu 0.0 :type single-float)
+  (Δv 0.0 :type single-float)
+  ;; Distance to the cutting plane
+  (d  0.0 :type single-float)
   ;; Normal angles
   (ϕ                 0f0  :type single-float)
-  (ψ (float (/ pi 2) 0f0) :type single-float)
-  ;; Distance to the cutting plane
-  (d               0.0 :type single-float))
+  (ψ (float (/ pi 2) 0f0) :type single-float))
 
 (defstruct context
   (slice-program  -1 :type fixnum)
@@ -168,17 +166,18 @@
 (serapeum:-> plane-world-transform (scene)
              (values rtg-math.types:mat3 &optional))
 (defun plane-world-transform (scene)
-  (m3:*
-   (world-transform-matrix
-    (scene-v scene)
-    (plane-normal
-     (scene-ϕ scene)
-     (scene-ψ scene)))
-   (diagonal3 1.0 1.0 (scene-d scene))
-   (planar-transform-matrix
-    (scene-α scene)
-    (scene-Δu scene)
-    (scene-Δv scene))))
+  (let ((normal (plane-normal
+                 (scene-ϕ scene)
+                 (scene-ψ scene))))
+    (m3:*
+     (world-transform-matrix
+      (choose-tangent-vector normal)
+      normal)
+     (diagonal3 1.0 1.0 (scene-d scene))
+     (planar-transform-matrix
+      (scene-α scene)
+      (scene-Δu scene)
+      (scene-Δv scene)))))
 
 (serapeum:-> make-draw-handler (context scene)
              (values (function (gir::object-instance gir::object-instance)
@@ -246,11 +245,12 @@
           (set-mat4-uniform  program "PROJECTION" projection)
           (set-float-uniform program "DIST" (scene-d scene))
           (set-mat3-uniform  program "WORLD_TRANSFORM"
-                             (world-transform-matrix
-                              (scene-v scene)
-                              (plane-normal
-                               (scene-ϕ scene)
-                               (scene-ψ scene)))))
+                             (let ((normal (plane-normal
+                                            (scene-ϕ scene)
+                                            (scene-ψ scene))))
+                               (world-transform-matrix
+                                (choose-tangent-vector normal)
+                                normal))))
         (gl:bind-vertex-array (context-empty-vao context))
         (gl:draw-arrays :triangle-strip 0 4)))
     (values)))

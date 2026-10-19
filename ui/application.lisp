@@ -197,12 +197,6 @@
                   (declare (ignore widget))
                   (let ((x (float (gtk4:range-value scale) 0f0)))
                     (funcall f x))
-                  (when (randomization-needed-p
-                         (plane-normal
-                          (scene-ϕ scene)
-                          (scene-ψ scene))
-                         (scene-v scene))
-                    (setf (scene-v scene) (random-vec3)))
                   (gtk4:gl-area-queue-render (renderer-area renderer))))))
         (macrolet ((connect (scale place)
                      `(%connect ,scale (lambda (x) (setf ,place x)))))
