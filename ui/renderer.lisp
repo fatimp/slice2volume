@@ -166,18 +166,13 @@
 (serapeum:-> plane-world-transform (scene)
              (values rtg-math.types:mat3 &optional))
 (defun plane-world-transform (scene)
-  (let ((normal (plane-normal
-                 (scene-ϕ scene)
-                 (scene-ψ scene))))
-    (m3:*
-     (world-transform-matrix
-      (choose-tangent-vector normal)
-      normal)
-     (diagonal3 1.0 1.0 (scene-d scene))
-     (planar-transform-matrix
-      (scene-α scene)
-      (scene-Δu scene)
-      (scene-Δv scene)))))
+  (lib:plane-world-transform
+   (scene-ϕ  scene)
+   (scene-ψ  scene)
+   (scene-d  scene)
+   (scene-α  scene)
+   (scene-Δu scene)
+   (scene-Δv scene)))
 
 (serapeum:-> make-draw-handler (context scene)
              (values (function (gir::object-instance gir::object-instance)
@@ -245,11 +240,11 @@
           (set-mat4-uniform  program "PROJECTION" projection)
           (set-float-uniform program "DIST" (scene-d scene))
           (set-mat3-uniform  program "WORLD_TRANSFORM"
-                             (let ((normal (plane-normal
+                             (let ((normal (lib:plane-normal
                                             (scene-ϕ scene)
                                             (scene-ψ scene))))
-                               (world-transform-matrix
-                                (choose-tangent-vector normal)
+                               (lib:world-transform-matrix
+                                (lib:choose-tangent-vector normal)
                                 normal))))
         (gl:bind-vertex-array (context-empty-vao context))
         (gl:draw-arrays :triangle-strip 0 4)))

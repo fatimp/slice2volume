@@ -8,11 +8,13 @@
     :components ((:file "package")
                  (:file "conditions")
                  (:file "loaders")
+                 (:file "transforms")
                  (:file "downsample"))
     :depends-on (:serapeum
                  :alexandria
                  :numpy-npy
-                 :cl-libtiff))
+                 :cl-libtiff
+                 :rtg-math))
 
 (defsystem :slice2volume/ui
     :name :slice2volume/ui
@@ -30,7 +32,6 @@
     :depends-on (:cl-gtk4
                  :varjo
                  :cl-opengl
-                 :rtg-math
                  :serapeum
                  :alexandria
                  :slice2volume/library)

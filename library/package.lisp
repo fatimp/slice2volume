@@ -1,6 +1,9 @@
 (defpackage slice2volume/library
   (:use #:cl)
-  (:local-nicknames (#:tiff #:cl-libtiff))
+  (:local-nicknames (#:tiff #:cl-libtiff)
+                    (#:v3   #:rtg-math.vector3)
+                    (#:m3   #:rtg-math.matrix3)
+                    (#:m4   #:rtg-math.matrix4))
   (:export
    ;; Types
    #:image
@@ -17,5 +20,9 @@
    #:load-slice
    #:loader-type
    #:loader-description
+   #:plane-world-transform
+   #:plane-normal
+   #:choose-tangent-vector
+   #:world-transform-matrix
    ;; Macros
    #:loop-ranges))
