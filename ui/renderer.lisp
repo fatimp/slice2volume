@@ -4,13 +4,14 @@
 (deftype volume-gpu-uploader () '(function ((lib:image 3)) (values &optional)))
 
 (defstruct scene
-  (ϕ               0.0 :type single-float)
+  (α               0.0 :type single-float)
   (Δu              0.0 :type single-float)
   (Δv              0.0 :type single-float)
   ;; Random vector not collinear with n
   (v (v3:make 0.0 1.0 0.0) :type rtg-math.types:vec3)
-  ;; And a normal to the cutting plane
-  (n  (v3:make 0.0 0.0 1.0) :type rtg-math.types:vec3)
+  ;; Normal angles
+  (ϕ                 0f0  :type single-float)
+  (ψ (float (/ pi 2) 0f0) :type single-float)
   ;; Distance to the cutting plane
   (d               0.0 :type single-float))
 
@@ -170,10 +171,12 @@
   (m3:*
    (world-transform-matrix
     (scene-v scene)
-    (scene-n scene))
+    (plane-normal
+     (scene-ϕ scene)
+     (scene-ψ scene)))
    (diagonal3 1.0 1.0 (scene-d scene))
    (planar-transform-matrix
-    (scene-ϕ scene)
+    (scene-α scene)
     (scene-Δu scene)
     (scene-Δv scene))))
 
@@ -245,7 +248,9 @@
           (set-mat3-uniform  program "WORLD_TRANSFORM"
                              (world-transform-matrix
                               (scene-v scene)
-                              (scene-n scene))))
+                              (plane-normal
+                               (scene-ϕ scene)
+                               (scene-ψ scene)))))
         (gl:bind-vertex-array (context-empty-vao context))
         (gl:draw-arrays :triangle-strip 0 4)))
     (values)))
