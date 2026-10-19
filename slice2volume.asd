@@ -16,7 +16,8 @@
                  :numpy-npy
                  :cl-libtiff
                  :rtg-math
-                 :float-features))
+                 :float-features
+                 :cl-store))
 
 (defsystem :slice2volume/ui
     :name :slice2volume/ui

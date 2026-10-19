@@ -32,5 +32,7 @@
    #:loader-type
    #:loader-description
    #:plane-world-transform
+   #:store-trans-param
+   #:load-trans-param
    ;; Macros
    #:loop-ranges))

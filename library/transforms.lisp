@@ -84,3 +84,14 @@
    (trans-param-α  param)
    (trans-param-Δu param)
    (trans-param-Δv param)))
+
+(serapeum:-> store-trans-param (trans-param (or pathname string))
+             (values &optional))
+(defun store-trans-param (param name)
+  (cl-store:store param name)
+  (values))
+
+(serapeum:-> load-trans-param ((or pathname string))
+             (values trans-param &optional))
+(defun load-trans-param (name)
+  (cl-store:restore name))

@@ -52,8 +52,8 @@
                  :accept-label "Save"
                  :cancel-label "Cancel")))
     (let ((filter (gtk4:make-file-filter)))
-      (gtk4:file-filter-add-suffix filter "npy")
-      (setf (gtk4:file-filter-name filter) "Numpy array")
+      (gtk4:file-filter-add-suffix filter "trans")
+      (setf (gtk4:file-filter-name filter) "Transform parameters")
       (gtk4:file-chooser-add-filter dialog filter))
     (gtk4:connect
      dialog "response"
@@ -246,9 +246,7 @@
           window
           (lambda (pathname)
             (handler-case
-                (numpy-npy:store-array
-                 (lib:plane-world-transform scene)
-                 pathname)
+                (lib:store-trans-param scene pathname)
               (error (c) (error-dialog window c))))))))
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))
