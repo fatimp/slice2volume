@@ -3,6 +3,9 @@
 (macrolet ((frob (type)
              `(varjo:define-vari-function texcoord ((space-coord ,type))
                 (let ((res (/ (1+ space-coord) 2)))
+                  ;; FIXME: Without this the image will be flipped
+                  ;; around the Ox axis, but in sync with CPU code.
+                  #+nil
                   (setf (vari:swizzle res :y)
                         (- 1 (vari:swizzle res :y)))
                   res))))

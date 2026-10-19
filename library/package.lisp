@@ -34,5 +34,6 @@
    #:plane-world-transform
    #:store-trans-param
    #:load-trans-param
+   #:slice
    ;; Macros
    #:loop-ranges))
