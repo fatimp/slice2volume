@@ -10,7 +10,8 @@
                  (:file "loaders")
                  (:file "transforms")
                  (:file "downsample")
-                 (:file "slicer"))
+                 (:file "slicer")
+                 (:file "histogram"))
     :depends-on (:serapeum
                  :alexandria
                  :numpy-npy
