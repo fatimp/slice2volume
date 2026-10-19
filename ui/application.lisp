@@ -135,7 +135,7 @@
     (setf (gtk4:window-title window) "Slice2Volume")
     ;; KLUDGE: this setter is broken in cl-gtk4, so use gir directly
     (gir:invoke (window "set_size_request") 1200 700)
-    (let* ((scene (make-scene))
+    (let* ((scene (lib:make-trans-param))
            (toplevel-box (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                         :spacing 2))
            (huge-box     (gtk4:make-box :orientation gtk4:+orientation-horizontal+
@@ -161,13 +161,13 @@
            ;; Saving the result
            (save-transform (gtk4:make-button :label "Save transform"))
            ;; Cutting plane
-           (ϕ-scale (scale 0d0 (* 2 pi) (scene-ϕ scene) 1d-1))
-           (ψ-scale (scale (- (/ pi 2)) (+ (/ pi 2)) (scene-ψ scene) 1d-1))
-           (d-scale (scale -1f0 1f0 (scene-d scene) 1f-2))
+           (ϕ-scale (scale 0d0 (* 2 pi) (lib:trans-param-ϕ scene) 1d-1))
+           (ψ-scale (scale (- (/ pi 2)) (+ (/ pi 2)) (lib:trans-param-ψ scene) 1d-1))
+           (d-scale (scale -1f0 1f0 (lib:trans-param-d scene) 1f-2))
            ;; Planar space
-           (α-scale  (scale  (- pi) (+ pi) (scene-α scene) 1f-2))
-           (Δu-scale (scale -1f0 1f0 (scene-Δu scene) 1f-2))
-           (Δv-scale (scale -1f0 1f0 (scene-Δv scene) 1f-2)))
+           (α-scale  (scale  (- pi) (+ pi) (lib:trans-param-α scene) 1f-2))
+           (Δu-scale (scale -1f0 1f0 (lib:trans-param-Δu scene) 1f-2))
+           (Δv-scale (scale -1f0 1f0 (lib:trans-param-Δv scene) 1f-2)))
       (setf (gtk4:window-child window)      toplevel-box
             (gtk4:frame-child  load-frame)  load-box
             (gtk4:frame-child  cut-frame)   cut-box
@@ -200,12 +200,12 @@
                   (gtk4:gl-area-queue-render (renderer-area renderer))))))
         (macrolet ((connect (scale place)
                      `(%connect ,scale (lambda (x) (setf ,place x)))))
-          (connect  ϕ-scale (scene-ϕ scene))
-          (connect  ψ-scale (scene-ψ scene))
-          (connect  d-scale (scene-d  scene))
-          (connect  α-scale (scene-α  scene))
-          (connect Δu-scale (scene-Δu scene))
-          (connect Δv-scale (scene-Δv scene))))
+          (connect  ϕ-scale (lib:trans-param-ϕ  scene))
+          (connect  ψ-scale (lib:trans-param-ψ  scene))
+          (connect  d-scale (lib:trans-param-d  scene))
+          (connect  α-scale (lib:trans-param-α  scene))
+          (connect Δu-scale (lib:trans-param-Δu scene))
+          (connect Δv-scale (lib:trans-param-Δv scene))))
       (gtk4:connect
        volume-button "clicked"
        (lambda (widget)
@@ -247,7 +247,7 @@
           (lambda (pathname)
             (handler-case
                 (numpy-npy:store-array
-                 (plane-world-transform scene)
+                 (lib:plane-world-transform scene)
                  pathname)
               (error (c) (error-dialog window c))))))))
     (unless (gtk4:widget-visible-p window)

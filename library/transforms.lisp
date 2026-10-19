@@ -52,10 +52,10 @@
         (sin (sin ϕ)))
     (m3:make cos (- sin) Δu (+ sin) cos Δv 0.0 0.0 1.0)))
 
-(serapeum:-> plane-world-transform (single-float single-float single-float
-                                    single-float single-float single-float)
+(serapeum:-> %plane-world-transform (single-float single-float single-float
+                                     single-float single-float single-float)
              (values rtg-math.types:mat3 &optional))
-(defun plane-world-transform (ϕ ψ d α Δu Δv)
+(defun %plane-world-transform (ϕ ψ d α Δu Δv)
   (let ((normal (plane-normal ϕ ψ)))
     (m3:*
      (world-transform-matrix
@@ -63,3 +63,24 @@
       normal)
      (diagonal3 1.0 1.0 d)
      (planar-transform-matrix α Δu Δv))))
+
+(defstruct trans-param
+  (α  0.0 :type single-float)
+  (Δu 0.0 :type single-float)
+  (Δv 0.0 :type single-float)
+  ;; Distance to the cutting plane
+  (d  0.0 :type single-float)
+  ;; Normal angles
+  (ϕ                 0f0  :type single-float)
+  (ψ (float (/ pi 2) 0f0) :type single-float))
+
+(serapeum:-> plane-world-transform (trans-param)
+             (values rtg-math.types:mat3 &optional))
+(defun plane-world-transform (param)
+  (%plane-world-transform
+   (trans-param-ϕ  param)
+   (trans-param-ψ  param)
+   (trans-param-d  param)
+   (trans-param-α  param)
+   (trans-param-Δu param)
+   (trans-param-Δv param)))

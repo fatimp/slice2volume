@@ -11,6 +11,16 @@
    #:loader
    #:slice-loader
    #:volume-loader
+   #:trans-param
+   ;; Constructors
+   #:make-trans-param
+   ;; Accessors
+   #:trans-param-α
+   #:trans-param-Δu
+   #:trans-param-Δv
+   #:trans-param-d
+   #:trans-param-ϕ
+   #:trans-param-ψ
    ;; Conditions
    #:slice2volume-error
    #:loader-error
@@ -22,8 +32,5 @@
    #:loader-type
    #:loader-description
    #:plane-world-transform
-   #:plane-normal
-   #:choose-tangent-vector
-   #:world-transform-matrix
    ;; Macros
    #:loop-ranges))

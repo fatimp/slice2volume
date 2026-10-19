@@ -3,16 +3,6 @@
 (deftype slice-gpu-uploader  () '(function ((lib:image 2)) (values &optional)))
 (deftype volume-gpu-uploader () '(function ((lib:image 3)) (values &optional)))
 
-(defstruct scene
-  (α  0.0 :type single-float)
-  (Δu 0.0 :type single-float)
-  (Δv 0.0 :type single-float)
-  ;; Distance to the cutting plane
-  (d  0.0 :type single-float)
-  ;; Normal angles
-  (ϕ                 0f0  :type single-float)
-  (ψ (float (/ pi 2) 0f0) :type single-float))
-
 (defstruct context
   (slice-program  -1 :type fixnum)
   (slice-texture  -1 :type fixnum)
@@ -163,18 +153,7 @@
       (gl:delete-texture (context-slice-texture context)))
     (values)))
 
-(serapeum:-> plane-world-transform (scene)
-             (values rtg-math.types:mat3 &optional))
-(defun plane-world-transform (scene)
-  (lib:plane-world-transform
-   (scene-ϕ  scene)
-   (scene-ψ  scene)
-   (scene-d  scene)
-   (scene-α  scene)
-   (scene-Δu scene)
-   (scene-Δv scene)))
-
-(serapeum:-> make-draw-handler (context scene)
+(serapeum:-> make-draw-handler (context lib:trans-param)
              (values (function (gir::object-instance gir::object-instance)
                                (values boolean &optional))
                      &optional))
@@ -211,7 +190,7 @@
           (gl:use-program program)
           (set-int-uniform  program "SAMPLER" 0)
           (set-mat3-uniform program "TRANSFORM"
-                            (plane-world-transform scene)))
+                            (lib:plane-world-transform scene)))
         (gl:active-texture :texture0)
         (gl:bind-vertex-array (context-empty-vao context))
         (gl:draw-arrays :triangle-strip 0 4))
@@ -237,20 +216,14 @@
         ;; Secondly, draw a plane
         (let ((program (context-plane-program context)))
           (gl:use-program program)
-          (set-mat4-uniform  program "PROJECTION" projection)
-          (set-float-uniform program "DIST" (scene-d scene))
-          (set-mat3-uniform  program "WORLD_TRANSFORM"
-                             (let ((normal (lib:plane-normal
-                                            (scene-ϕ scene)
-                                            (scene-ψ scene))))
-                               (lib:world-transform-matrix
-                                (lib:choose-tangent-vector normal)
-                                normal))))
+          (set-mat4-uniform program "PROJECTION" projection)
+          (set-mat3-uniform program "TRANSFORM"
+                            (lib:plane-world-transform scene)))
         (gl:bind-vertex-array (context-empty-vao context))
         (gl:draw-arrays :triangle-strip 0 4)))
     (values)))
 
-(serapeum:-> make-drawing-area (scene)
+(serapeum:-> make-drawing-area (lib:trans-param)
              (values renderer &optional))
 (defun make-drawing-area (scene)
   (let ((area    (gtk4:make-gl-area))

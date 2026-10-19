@@ -102,10 +102,9 @@
 (defparameter *plane-vertex-shader*
   (varjo:make-stage
    :vertex
-   '()                        ; No inputs
-   '((world-transform :mat3)  ; Planar space to world coordinates
-     (dist            :float) ; Distance to the cutting plane from the origin
-     (projection      :mat4)) ; Projection to the screen
+   '()                   ; No inputs
+   '((transform  :mat3)  ; Planar space to world coordinates
+     (projection :mat4)) ; Projection to the screen
    '(:330)
    `((let* ((square (vector
                      (vari:vec2 -3 -3)
@@ -113,8 +112,7 @@
                      (vari:vec2 -3 +3)
                      (vari:vec2 +3 +3)))
             (v (aref square vari:gl-vertex-id))
-            (vaug  (vari:vec3 v dist))
-            (world (* world-transform vaug)))
+            (world (* transform (vari:vec3 v 1))))
        (values (* projection (vari:vec4 world 1))
                world)))))
 
