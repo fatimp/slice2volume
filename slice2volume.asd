@@ -17,7 +17,8 @@
                  :slice2volume/transforms
                  :slice2volume/downsample
                  :slice2volume/slicer
-                 :slice2volume/normalize))
+                 :slice2volume/normalize
+                 :slice2volume/mutual-information))
 
 (defsystem :slice2volume/ui
     :name :slice2volume/ui
