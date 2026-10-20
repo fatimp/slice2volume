@@ -17,7 +17,7 @@
                  :slice2volume/transforms
                  :slice2volume/downsample
                  :slice2volume/slicer
-                 :slice2volume/histogram))
+                 :slice2volume/normalize))
 
 (defsystem :slice2volume/ui
     :name :slice2volume/ui
