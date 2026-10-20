@@ -37,9 +37,16 @@
 
 (serapeum:-> register-slice ((simple-array single-float (* *))
                              (simple-array single-float (* * *))
-                             tran:trans-param)
-             (values tran:trans-param double-float alexandria:positive-fixnum &optional))
-(defun register-slice (slice volume initial-guess)
+                             tran:trans-param &key
+                             (:nbins          alexandria:positive-fixnum)
+                             (:max-iterations alexandria:positive-fixnum)
+                             (:ftol           double-float)
+                             (:xstol          double-float))
+             (values tran:trans-param
+                     double-float
+                     alexandria:positive-fixnum &optional))
+(defun register-slice (slice volume initial-guess
+                       &key (nbins 15) (max-iterations 1000) (ftol 1d-6) (xstol 1d-6))
   (let ((height (array-dimension slice 0))
         (width  (array-dimension slice 1)))
     (flet ((target (trans)
@@ -47,14 +54,14 @@
                             volume height width
                             (tran:plane-world-transform
                              (vector->parameters trans)))))
-               (* (mi:mutual-information slice %slice 15)) -1d0)))
+               (* (mi:mutual-information slice %slice nbins)) -1d0)))
       (multiple-value-bind (result cost steps)
           (cl-optim:nelder-mead
            #'target
            (cl-optim:make-initial-simplex
             (parameters->vector initial-guess)
             5d-2)
-           :max-iterations 1000
-           :ftol  1d-6
-           :xstol 1d-6)
+           :max-iterations max-iterations
+           :ftol           ftol
+           :xstol          xstol)
         (values (vector->parameters result) cost steps)))))
