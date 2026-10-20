@@ -11,3 +11,5 @@ ql cl-store
 asdf 3.3.7
 github shamazmazum/cl-optim :tag v0.5
 github shamazmazum/entzauberte-matrices :tag v0.3
+ql fiveam
+github shamazmazum/cl-value-noise

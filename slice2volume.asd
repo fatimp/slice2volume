@@ -1,7 +1,7 @@
 (defsystem :slice2volume
     :name :slice2volume
     :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
-    :description "A tool for slice 2 volume registration"
+    :description "A tool for slice 2 volume registration (Library)"
     :license "2-clause BSD"
     :serial t
     :pathname "library"
@@ -20,7 +20,23 @@
                  :slice2volume/slicer
                  :slice2volume/normalize
                  :slice2volume/mutual-information
-                 :slice2volume/optimize))
+                 :slice2volume/optimize)
+    :in-order-to ((test-op (load-op "slice2volume/tests")))
+    :perform (test-op (op system)
+                      (declare (ignore op system))
+                      (funcall
+                       (symbol-function
+                        (intern (symbol-name '#:run-tests)
+                                (find-package :slice2volume/tests))))))
+
+(defsystem :slice2volume/tests
+  :name :slice2volume/tests
+  :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
+  :licence "2-clause BSD"
+  :pathname "tests"
+  :components ((:file "package")
+               (:file "tests" :depends-on ("package")))
+  :depends-on (:slice2volume :fiveam :cl-value-noise))
 
 (defsystem :slice2volume/ui
     :name :slice2volume/ui

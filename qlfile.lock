@@ -54,3 +54,11 @@
  (:class qlot/source/github:source-github
   :initargs (:repos "shamazmazum/entzauberte-matrices" :ref nil :branch nil :tag "v0.3")
   :version "github-33fa9324e6b9ea141eb2e6ad20087fa3a599df41"))
+("fiveam" .
+ (:class qlot/source/ql:source-ql
+  :initargs (:%version :latest)
+  :version "ql-2024-10-12"))
+("cl-value-noise" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/cl-value-noise" :ref nil :branch nil :tag nil)
+  :version "github-b3a44bd01e691e684c7a3de0cdc0e6e933c47976"))
