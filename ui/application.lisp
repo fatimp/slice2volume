@@ -135,7 +135,7 @@
     (setf (gtk4:window-title window) "Slice2Volume")
     ;; KLUDGE: this setter is broken in cl-gtk4, so use gir directly
     (gir:invoke (window "set_size_request") 1200 700)
-    (let* ((scene (tran:make-trans-param))
+    (let* ((scene (tran:trans-param 0.0 0.0 0.0 0.0 0.0 (float (/ pi 2) 0.0)))
            (toplevel-box (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                         :spacing 2))
            (huge-box     (gtk4:make-box :orientation gtk4:+orientation-horizontal+

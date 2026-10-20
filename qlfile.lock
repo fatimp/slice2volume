@@ -46,3 +46,11 @@
  (:class qlot/source/asdf:source-asdf
   :initargs (:version "3.3.7")
   :version "3.3.7"))
+("cl-optim" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/cl-optim" :ref nil :branch nil :tag "v0.5")
+  :version "github-9e6b6099ac7d6599fde1f28dc4ba6b7d9df0a828"))
+("entzauberte-matrices" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/entzauberte-matrices" :ref nil :branch nil :tag "v0.3")
+  :version "github-33fa9324e6b9ea141eb2e6ad20087fa3a599df41"))

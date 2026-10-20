@@ -13,12 +13,14 @@
                  :rtg-math
                  :float-features
                  :cl-store
+                 :cl-optim
                  :slice2volume/loaders
                  :slice2volume/transforms
                  :slice2volume/downsample
                  :slice2volume/slicer
                  :slice2volume/normalize
-                 :slice2volume/mutual-information))
+                 :slice2volume/mutual-information
+                 :slice2volume/optimize))
 
 (defsystem :slice2volume/ui
     :name :slice2volume/ui

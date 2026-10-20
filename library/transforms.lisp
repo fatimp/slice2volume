@@ -3,8 +3,6 @@
   (:export
    ;; Types
    #:trans-param
-   ;; Constructors
-   #:make-trans-param
    ;; Accessors
    #:trans-param-α
    #:trans-param-Δu
@@ -82,15 +80,15 @@
      (diagonal3 1.0 1.0 d)
      (planar-transform-matrix α Δu Δv))))
 
-(defstruct trans-param
+(defstruct (trans-param (:constructor trans-param (α Δu Δv d ϕ ψ)))
   (α  0.0 :type single-float)
   (Δu 0.0 :type single-float)
   (Δv 0.0 :type single-float)
   ;; Distance to the cutting plane
   (d  0.0 :type single-float)
   ;; Normal angles
-  (ϕ                 0f0  :type single-float)
-  (ψ (float (/ pi 2) 0f0) :type single-float))
+  (ϕ  0f0 :type single-float)
+  (ψ  0f0 :type single-float))
 
 (serapeum:-> plane-world-transform (trans-param)
              (values rtg-math.types:mat3 &optional))
