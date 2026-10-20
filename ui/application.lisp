@@ -18,18 +18,23 @@
                (gtk4:file-chooser-add-filter dialog filter))))
   (values))
 
-(serapeum:-> file-chooser-dialog/open
-    (gir::object-instance load:loader-type
+(deftype dialog-type () '(or (eql :trans) load:loader-type))
+
+(serapeum:-> file-chooser-dialog/load
+    (gir::object-instance dialog-type
      (function (pathname) (values &optional)))
     (values &optional))
-(defun file-chooser-dialog/open (parent-window type callback)
+(defun file-chooser-dialog/load (parent-window type callback)
   (let ((dialog (gtk4:make-file-chooser-native
-                 :title "Choose a model"
+                 :title (if (eq type :trans)
+                            "Choose a transform"
+                            "Choose a model")
                  :parent parent-window
                  :action gtk4:+file-chooser-action-open+
                  :accept-label "Open"
                  :cancel-label "Cancel")))
-    (add-filters-to-file-chooser-dialog dialog type)
+    (unless (eq type :trans)
+      (add-filters-to-file-chooser-dialog dialog type))
     (gtk4:connect
      dialog "response"
      (lambda (widget response)
@@ -148,8 +153,10 @@
                                         :spacing 5))
            (plane-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                         :spacing 5))
+           (trans-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                        :spacing 5))
            (load-frame  (gtk4:make-frame :label "Data Loading"))
-           (save-frame  (gtk4:make-frame :label "Result exporting"))
+           (trans-frame (gtk4:make-frame :label "Result exporting"))
            (cut-frame   (gtk4:make-frame :label "Cutting Plane Control"))
            (plane-frame (gtk4:make-frame :label "Planar Space Control"))
 
@@ -158,8 +165,9 @@
            ;; Data loading
            (slice-button   (gtk4:make-button :label "Load Slice"))
            (volume-button  (gtk4:make-button :label "Load Volume"))
-           ;; Saving the result
+           ;; Transform IO
            (save-transform (gtk4:make-button :label "Save transform"))
+           (load-transform (gtk4:make-button :label "Load transform"))
            ;; Cutting plane
            (ϕ-scale (scale 0d0 (* 2 pi) (tran:trans-param-ϕ scene) 1d-1))
            (ψ-scale (scale (- (/ pi 2)) (+ (/ pi 2)) (tran:trans-param-ψ scene) 1d-1))
@@ -172,7 +180,7 @@
             (gtk4:frame-child  load-frame)  load-box
             (gtk4:frame-child  cut-frame)   cut-box
             (gtk4:frame-child  plane-frame) plane-box
-            (gtk4:frame-child  save-frame)  save-transform)
+            (gtk4:frame-child  trans-frame) trans-box)
       (expand-widget (renderer-area renderer))
       (gtk4:box-append toplevel-box huge-box)
       (gtk4:box-append toplevel-box status)
@@ -181,7 +189,7 @@
       (gtk4:box-append big-box  load-frame)
       (gtk4:box-append big-box  cut-frame)
       (gtk4:box-append big-box  plane-frame)
-      (gtk4:box-append big-box  save-frame)
+      (gtk4:box-append big-box  trans-frame)
       (gtk4:box-append load-box slice-button)
       (gtk4:box-append load-box volume-button)
       (box-append-with-label cut-box ϕ-scale "ϕ" :h)
@@ -190,6 +198,8 @@
       (box-append-with-label plane-box α-scale  "α"  :h)
       (box-append-with-label plane-box Δu-scale "Δu" :h)
       (box-append-with-label plane-box Δv-scale "Δv" :h)
+      (gtk4:box-append trans-box save-transform)
+      (gtk4:box-append trans-box load-transform)
       (flet ((%connect (scale f)
                (gtk4:connect
                 scale "value-changed"
@@ -210,7 +220,7 @@
        volume-button "clicked"
        (lambda (widget)
          (declare (ignore widget))
-         (file-chooser-dialog/open
+         (file-chooser-dialog/load
           window :volume
           (lambda (pathname)
             (handler-case
@@ -226,7 +236,7 @@
        slice-button "clicked"
        (lambda (widget)
          (declare (ignore widget))
-         (file-chooser-dialog/open
+         (file-chooser-dialog/load
           window :slice
           (lambda (pathname)
             (handler-case
@@ -247,6 +257,31 @@
           (lambda (pathname)
             (handler-case
                 (tran:store-trans-param scene pathname)
+              (error (c) (error-dialog window c)))))))
+      (gtk4:connect
+       load-transform "clicked"
+       (lambda (widget)
+         (declare (ignore widget))
+         (file-chooser-dialog/load
+          window :trans
+          (lambda (pathname)
+            (handler-case
+                (progn
+                  (tran:trans-copy-into!
+                   scene (tran:load-trans-param pathname))
+                  (setf (gtk4:range-value ϕ-scale)
+                        (float (tran:trans-param-ϕ scene) 0d0)
+                        (gtk4:range-value ψ-scale)
+                        (float (tran:trans-param-ψ scene) 0d0)
+                        (gtk4:range-value d-scale)
+                        (float (tran:trans-param-d scene) 0d0)
+                        (gtk4:range-value α-scale)
+                        (float (tran:trans-param-α scene) 0d0)
+                        (gtk4:range-value Δu-scale)
+                        (float (tran:trans-param-Δu scene) 0d0)
+                        (gtk4:range-value Δv-scale)
+                        (float (tran:trans-param-Δv scene) 0d0))
+                  (gtk4:gl-area-queue-render (renderer-area renderer)))
               (error (c) (error-dialog window c))))))))
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))

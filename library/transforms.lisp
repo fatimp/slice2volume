@@ -11,6 +11,7 @@
    #:trans-param-ϕ
    #:trans-param-ψ
    ;; Functions
+   #:trans-copy-into! ; Oh fuck
    #:plane-world-transform
    #:store-trans-param
    #:load-trans-param))
@@ -111,3 +112,20 @@
              (values trans-param &optional))
 (defun load-trans-param (name)
   (cl-store:restore name))
+
+(serapeum:-> trans-copy-into! (trans-param trans-param)
+             (values &optional))
+(defun trans-copy-into! (dst src)
+  (setf (trans-param-α  dst)
+        (trans-param-α  src)
+        (trans-param-Δu dst)
+        (trans-param-Δu src)
+        (trans-param-Δv dst)
+        (trans-param-Δv src)
+        (trans-param-d  dst)
+        (trans-param-d  src)
+        (trans-param-ϕ  dst)
+        (trans-param-ϕ  src)
+        (trans-param-ψ  dst)
+        (trans-param-ψ  src))
+  (values))
