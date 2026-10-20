@@ -43,12 +43,11 @@
   (let ((height (array-dimension slice 0))
         (width  (array-dimension slice 1)))
     (flet ((target (trans)
-             (print trans)
              (let ((%slice (slice:slice
                             volume height width
                             (tran:plane-world-transform
                              (vector->parameters trans)))))
-               (* (print (mi:mutual-information slice %slice 15)) -1d0))))
+               (* (mi:mutual-information slice %slice 15)) -1d0)))
       (multiple-value-bind (result cost steps)
           (cl-optim:nelder-mead
            #'target
