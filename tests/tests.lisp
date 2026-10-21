@@ -42,6 +42,16 @@
               (pow (row-major-aref array i))))
       result)))
 
+(serapeum:-> invert-color ((simple-array single-float (* *)))
+             (values (simple-array single-float (* *)) &optional))
+(defun invert-color (array)
+  (let ((result (make-array (array-dimensions array)
+                            :element-type 'single-float)))
+    (loop for i below (array-total-size result) do
+      (setf (row-major-aref result i)
+            (- 1 (row-major-aref array i))))
+    result))
+
 (defun gen-single-float (&key min max)
   (assert (<= min max))
   (lambda ()
@@ -73,9 +83,9 @@
       (is (> (mi:mutual-information noise1 noise2 15) 1.2)))))
 
 (test mi-prop
-  (for-all ((seed1 (gen-integer      :min 0   :max 1000000))
-            (seed2 (gen-integer      :min 0   :max 1000000))
-            (size  (gen-integer      :min 800 :max 2500)))
+  (for-all ((seed1 (gen-integer :min 0   :max 1000000))
+            (seed2 (gen-integer :min 0   :max 1000000))
+            (size  (gen-integer :min 800 :max 2500)))
     (let* ((noise1 (norm:normalize-image
                     (make-noise size 0.0 seed1)
                     0.02))
@@ -84,3 +94,12 @@
                     0.02)))
       (is (< (mi:mutual-information noise1 noise2 15) 1.05))
       (is (> (mi:mutual-information noise1 noise1 15) (- 2 1f-4))))))
+
+(test mi-inv
+  (for-all ((seed (gen-integer :min 0   :max 1000000))
+            (size (gen-integer :min 800 :max 2500)))
+    (let* ((noise (norm:normalize-image
+                   (make-noise size 0.0 seed)
+                   0.02))
+           (invert (invert-color noise)))
+      (is (> (mi:mutual-information noise invert 15) 1.6)))))
