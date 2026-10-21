@@ -35,26 +35,38 @@
           (float (tran:trans-param-ψ  param) 0d0))
     v))
 
+(deftype registration-logger ()
+  '(function (tran:trans-param single-float) (values &optional)))
+
+(defun dummy-logger (parameters mi)
+  (declare (ignore parameters mi))
+  (values))
+
 (serapeum:-> register-slice ((simple-array single-float (* *))
                              (simple-array single-float (* * *))
                              tran:trans-param &key
                              (:nbins          alexandria:positive-fixnum)
                              (:max-iterations alexandria:positive-fixnum)
                              (:ftol           double-float)
-                             (:xstol          double-float))
+                             (:xstol          double-float)
+                             (:logger         registration-logger))
              (values tran:trans-param
                      double-float
                      alexandria:positive-fixnum &optional))
 (defun register-slice (slice volume initial-guess
-                       &key (nbins 15) (max-iterations 1000) (ftol 1d-6) (xstol 1d-6))
+                       &key
+                         (nbins 15) (max-iterations 1000) (ftol 1d-6) (xstol 1d-6)
+                         (logger #'dummy-logger))
   (let ((height (array-dimension slice 0))
         (width  (array-dimension slice 1)))
     (flet ((target (trans)
-             (let ((%slice (slice:slice
-                            volume height width
-                            (tran:plane-world-transform
-                             (vector->parameters trans)))))
-               (* (mi:mutual-information slice %slice nbins) -1d0))))
+             (let* ((params (vector->parameters trans))
+                    (%slice (slice:slice
+                             volume height width
+                             (tran:plane-world-transform params)))
+                    (mi (mi:mutual-information slice %slice nbins)))
+               (funcall logger params mi)
+               (* mi -1d0))))
       (multiple-value-bind (result cost steps)
           (cl-optim:nelder-mead
            #'target
