@@ -71,6 +71,7 @@
   (log:debug "Current parameters: ~a" trans))
 
 (defun slice2volume ()
+  (sb-ext:disable-debugger)
   (sb-int:set-floating-point-modes :traps nil)
   (let* ((argv (parse-args))
          (fixed      (%assoc :fixed      argv))
