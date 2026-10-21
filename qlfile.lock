@@ -62,3 +62,11 @@
  (:class qlot/source/github:source-github
   :initargs (:repos "shamazmazum/cl-value-noise" :ref nil :branch nil :tag nil)
   :version "github-b3a44bd01e691e684c7a3de0cdc0e6e933c47976"))
+("command-line-parse" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/command-line-parse" :ref nil :branch nil :tag nil)
+  :version "github-42591b6cb184fe17dae8b78bbde8a2ee452250d8"))
+("parse-float" .
+ (:class qlot/source/ql:source-ql
+  :initargs (:%version :latest)
+  :version "ql-2026-01-01"))

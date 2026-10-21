@@ -60,3 +60,19 @@
     :build-operation program-op
     :build-pathname "slice2volume-ui"
     :entry-point "slice2volume/ui:slice2volume")
+
+(defsystem :slice2volume/cli
+    :name :slice2volume/cli
+    :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
+    :description "A tool for slice 2 volume registration (CLI tool)"
+    :license "2-clause BSD"
+    :serial t
+    :pathname "cli"
+    :components ((:file "package")
+                 (:file "cli"))
+    :depends-on (:command-line-parse
+                 :parse-float
+                 :slice2volume)
+    :build-operation program-op
+    :build-pathname "slice2volume-cli"
+    :entry-point "slice2volume/cli:slice2volume")
