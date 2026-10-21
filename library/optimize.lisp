@@ -54,7 +54,7 @@
                             volume height width
                             (tran:plane-world-transform
                              (vector->parameters trans)))))
-               (* (mi:mutual-information slice %slice nbins)) -1d0)))
+               (* (mi:mutual-information slice %slice nbins) -1d0))))
       (multiple-value-bind (result cost steps)
           (cl-optim:nelder-mead
            #'target
