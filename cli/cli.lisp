@@ -23,6 +23,10 @@
 (defparameter *parser*
   (seq
    (optional
+    (flag   :verbose
+            :short       #\v
+            :long        "verbose"
+            :description "Be verbose")
     (option :max-iter    "N"
             :long        "max-iterations"
             :short       #\i
@@ -62,7 +66,12 @@
       (print-usage *parser*)
       (uiop:quit 1))))
 
+(defun logger (trans mi)
+  (log:debug "Mutual information: ~f" mi)
+  (log:debug "Current parameters: ~a" trans))
+
 (defun slice2volume ()
+  (sb-int:set-floating-point-modes :traps nil)
   (let* ((argv (parse-args))
          (fixed      (%assoc :fixed      argv))
          (moving     (%assoc :moving     argv))
@@ -73,6 +82,7 @@
          (clip-ratio (%assoc :clip-ratio argv 0.02))
          (xstol      (%assoc :xstol      argv 1d-6))
          (ftol       (%assoc :ftol       argv 1d-6))
+         (verbose    (%assoc :verbose    argv))
 
          (fixed  (norm:normalize-image
                   (load:load-slice  (pathname fixed))
@@ -81,13 +91,16 @@
                   (load:load-volume (pathname moving))
                   clip-ratio))
          (initial (tran:load-trans-param initial)))
+
+    (log:config (if verbose :debug :info))
     (multiple-value-bind (transform score steps)
         (opt:register-slice fixed moving initial
                             :nbins          nbins
                             :max-iterations max-iter
                             :ftol           ftol
-                            :xstol          xstol)
-      (declare (ignore steps))
-      (tran:store-trans-param transform output)
-      (print score))))
-    
+                            :xstol          xstol
+                            :logger         #'logger)
+      (log:info "Done in ~d steps. Final score: ~f" steps score)
+      (when (> score -1.5)
+        (log:warn "Registration has most likely failed"))
+      (tran:store-trans-param transform output))))

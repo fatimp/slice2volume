@@ -72,6 +72,7 @@
                  (:file "cli"))
     :depends-on (:command-line-parse
                  :parse-float
+                 :log4cl
                  :slice2volume)
     :build-operation program-op
     :build-pathname "slice2volume-cli"
