@@ -153,6 +153,26 @@
       (gl:delete-texture (context-slice-texture context)))
     (values)))
 
+(serapeum:-> slice-viewport-size
+    (rtg-math.types:mat3
+     alexandria:positive-fixnum
+     alexandria:positive-fixnum
+     alexandria:positive-fixnum)
+    (values alexandria:positive-fixnum
+            alexandria:positive-fixnum
+            &optional))
+(defun slice-viewport-size (transform width height depth)
+  (let* ((transform (m3:*
+                     (tran:diagonal3 (/ width  2.0)
+                                     (/ height 2.0)
+                                     (/ depth  2.0))
+                     transform))
+         (p1 (m3:*v transform (v3:make -1.0 -1.0 1.0)))
+         (p2 (m3:*v transform (v3:make +1.0 -1.0 1.0)))
+         (p3 (m3:*v transform (v3:make -1.0 +1.0 1.0))))
+    (values (ceiling (v3:length (v3:- p2 p1)))
+            (ceiling (v3:length (v3:- p3 p1))))))
+
 (serapeum:-> make-draw-handler (context tran:trans-param)
              (values (function (gir::object-instance gir::object-instance)
                                (values boolean &optional))
@@ -181,10 +201,14 @@
         ;; Render volume
         (gl:bind-texture :texture-3d (context-volume-texture context))
         (multiple-value-bind (x y width height)
-            (viewport-dimensions
-             (gl:get-tex-level-parameter :texture-3d 0 :texture-width)
-             (gl:get-tex-level-parameter :texture-3d 0 :texture-height)
-             area-width area-height)
+            (multiple-value-call
+                #'viewport-dimensions
+              (slice-viewport-size
+               (tran:plane-world-transform scene)
+               (gl:get-tex-level-parameter :texture-3d 0 :texture-width)
+               (gl:get-tex-level-parameter :texture-3d 0 :texture-height)
+               (gl:get-tex-level-parameter :texture-3d 0 :texture-depth))
+              area-width area-height)
           (gl:viewport (+ area-width x) y width height))
         (let ((program (context-volume-program context)))
           (gl:use-program program)

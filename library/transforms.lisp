@@ -12,6 +12,7 @@
    #:trans-param-ψ
    ;; Functions
    #:trans-copy-into! ; Oh fuck
+   #:diagonal3
    #:plane-world-transform
    #:store-trans-param
    #:load-trans-param))
