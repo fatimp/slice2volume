@@ -27,6 +27,14 @@
             :short       #\v
             :long        "verbose"
             :description "Be verbose")
+    (option :Δangle      "Δa"
+            :long        "delta-angle"
+            :fn          (float-parser 'double-float)
+            :description "Initial delta for angle parameters")
+    (option :Δshift      "Δx"
+            :long        "delta-shift"
+            :fn          (float-parser 'double-float)
+            :description "Initial delta for shift parameters")
     (option :max-iter    "N"
             :long        "max-iterations"
             :short       #\i
@@ -83,6 +91,8 @@
          (clip-ratio (%assoc :clip-ratio argv 0.02))
          (xstol      (%assoc :xstol      argv 1d-6))
          (ftol       (%assoc :ftol       argv 1d-6))
+         (Δshift     (%assoc :Δshift     argv 5d-2))
+         (Δangle     (%assoc :Δangle     argv 5d-2))
          (verbose    (%assoc :verbose    argv))
 
          (fixed  (norm:normalize-image
@@ -100,6 +110,8 @@
                             :max-iterations max-iter
                             :ftol           ftol
                             :xstol          xstol
+                            :Δshift         Δshift
+                            :Δangle         Δangle
                             :logger         #'logger)
       (log:info "Done in ~d steps. Final score: ~f" steps score)
       (when (> score -1.5)

@@ -82,12 +82,13 @@
      (diagonal3 1.0 1.0 d)
      (planar-transform-matrix α Δu Δv))))
 
-(defstruct (trans-param (:constructor trans-param (α Δu Δv d ϕ ψ)))
-  (α  0.0 :type single-float)
+(defstruct (trans-param (:constructor trans-param (Δu Δv d α ϕ ψ)))
   (Δu 0.0 :type single-float)
   (Δv 0.0 :type single-float)
   ;; Distance to the cutting plane
   (d  0.0 :type single-float)
+  ;; Plane rotation around plane normal
+  (α  0.0 :type single-float)
   ;; Normal angles
   (ϕ  0f0 :type single-float)
   (ψ  0f0 :type single-float))

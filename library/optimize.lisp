@@ -22,18 +22,26 @@
 (defun parameters->vector (param)
   (let ((v (make-array 6 :element-type 'double-float)))
     (setf (aref v 0)
-          (float (tran:trans-param-α  param) 0d0)
-          (aref v 1)
           (float (tran:trans-param-Δu param) 0d0)
-          (aref v 2)
+          (aref v 1)
           (float (tran:trans-param-Δv param) 0d0)
-          (aref v 3)
+          (aref v 2)
           (float (tran:trans-param-d  param) 0d0)
+          (aref v 3)
+          (float (tran:trans-param-α  param) 0d0)
           (aref v 4)
           (float (tran:trans-param-ϕ  param) 0d0)
           (aref v 5)
           (float (tran:trans-param-ψ  param) 0d0))
     v))
+
+(serapeum:-> simplex-Δ (double-float double-float)
+             (values (simple-array double-float (*)) &optional))
+(defun simplex-Δ (Δangle Δshift)
+  (make-array 6
+              :element-type 'double-float
+              :initial-contents (append (loop repeat 3 collect Δshift)
+                                        (loop repeat 3 collect Δangle))))
 
 (deftype registration-logger ()
   '(function (tran:trans-param single-float) (values &optional)))
@@ -49,13 +57,20 @@
                              (:max-iterations alexandria:positive-fixnum)
                              (:ftol           double-float)
                              (:xstol          double-float)
+                             (:Δangle         double-float)
+                             (:Δshift         double-float)
                              (:logger         registration-logger))
              (values tran:trans-param
                      double-float
                      alexandria:positive-fixnum &optional))
 (defun register-slice (slice volume initial-guess
                        &key
-                         (nbins 15) (max-iterations 1000) (ftol 1d-6) (xstol 1d-6)
+                         (nbins          15)
+                         (max-iterations 1000)
+                         (ftol           1d-6)
+                         (xstol          1d-6)
+                         (Δangle         5d-2)
+                         (Δshift         5d-2)
                          (logger #'dummy-logger))
   (let ((height (array-dimension slice 0))
         (width  (array-dimension slice 1)))
@@ -72,7 +87,7 @@
            #'target
            (cl-optim:make-initial-simplex
             (parameters->vector initial-guess)
-            5d-2)
+            (simplex-Δ Δangle Δshift))
            :max-iterations max-iterations
            :ftol           ftol
            :xstol          xstol)
