@@ -9,8 +9,9 @@
    #:slice-loader
    #:volume-loader
    #:loader
-   ;; Functions
    #:loader-type
+   ;; Functions
+   #:loader-types
    #:loader-description
    #:loaders
    #:load-volume
@@ -145,15 +146,27 @@
 
 ;; General loader functions
 (serapeum:defconstructor loader
-  (type        string)
-  (description string)
-  (slice       (or slice-loader  null))
-  (volume      (or volume-loader null)))
+  (types  list)
+  (desc   string)
+  (slice  (or slice-loader  null))
+  (volume (or volume-loader null)))
 
 (defparameter *loaders*
-  (list (loader "npy"  "Numpy array format" #'numpy-slice-loader #'numpy-volume-loader)
-        (loader "tif"  "TIFF image format"  #'tiff-slice-loader  #'tiff-volume-loader)
-        (loader "tiff" "TIFF image format"  #'tiff-slice-loader  #'tiff-volume-loader)))
+  (list (loader '("npy")
+                "Numpy array format"
+                #'numpy-slice-loader
+                #'numpy-volume-loader)
+        (loader '("tif" "tiff")
+                "TIFF image format"
+                #'tiff-slice-loader
+                #'tiff-volume-loader)))
+
+(serapeum:-> loader-description (loader)
+             (values string &optional))
+(defun loader-description (loader)
+  (format nil "~a (~{*.~a~^, ~})"
+          (loader-desc  loader)
+          (loader-types loader)))
 
 (serapeum:-> slice-loaders () (values list &optional))
 (defun slice-loaders ()
@@ -183,8 +196,9 @@
 (defun load-volume (pathname)
   (let ((loader (find (pathname-type pathname)
                       (loaders :volume)
-                      :test #'string=
-                      :key  #'loader-type)))
+                      :test (lambda (x y)
+                              (member x y :test #'string=))
+                      :key  #'loader-types)))
     (when loader
       (funcall (loader-volume loader) pathname))))
 
@@ -193,7 +207,8 @@
 (defun load-slice (pathname)
   (let ((loader (find (pathname-type pathname)
                       (loaders :slice)
-                      :test #'string=
-                      :key  #'loader-type)))
+                      :test (lambda (x y)
+                              (member x y :test #'string=))
+                      :key  #'loader-types)))
     (when loader
       (funcall (loader-slice loader) pathname))))
