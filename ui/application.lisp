@@ -33,8 +33,14 @@
                  :action gtk4:+file-chooser-action-open+
                  :accept-label "Open"
                  :cancel-label "Cancel")))
-    (unless (eq type :trans)
-      (add-filters-to-file-chooser-dialog dialog type))
+    (cond
+      ((eq type :trans)
+       (let ((filter (gtk4:make-file-filter)))
+         (gtk4:file-filter-add-suffix filter "trans")
+         (setf (gtk4:file-filter-name filter) "Transform parameters")
+         (gtk4:file-chooser-add-filter dialog filter)))
+      ((typep type 'load:loader-type)
+       (add-filters-to-file-chooser-dialog dialog type)))
     (gtk4:connect
      dialog "response"
      (lambda (widget response)
