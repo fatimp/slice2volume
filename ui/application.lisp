@@ -148,7 +148,7 @@
     (setf (gtk4:window-title window) "Slice2Volume")
     ;; KLUDGE: this setter is broken in cl-gtk4, so use gir directly
     (gir:invoke (window "set_size_request") 1200 700)
-    (let* ((scene (tran:trans-param 0.0 0.0 0.0 0.0 0.0 (float (/ pi 2) 0.0)))
+    (let* ((scene (tran:trans-param 1.0 0.0 0.0 0.0 0.0 0.0 (float (/ pi 2) 0.0)))
            (toplevel-box (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                         :spacing 2))
            (huge-box     (gtk4:make-box :orientation gtk4:+orientation-horizontal+
@@ -181,6 +181,7 @@
            (ψ-scale (scale (- (/ pi 2)) (+ (/ pi 2)) (tran:trans-param-ψ scene) 1d-1))
            (d-scale (scale -1f0 1f0 (tran:trans-param-d scene) 1f-2))
            ;; Planar space
+           (s-scale  (scale 5f-1 2f0 (tran:trans-param-s scene) 1f-2))
            (α-scale  (scale (- pi) (+ pi) (tran:trans-param-α scene) 1f-2))
            (Δu-scale (scale -1f0 1f0 (tran:trans-param-Δu scene) 1f-2))
            (Δv-scale (scale -1f0 1f0 (tran:trans-param-Δv scene) 1f-2)))
@@ -206,6 +207,7 @@
       (box-append-with-label plane-box α-scale  "α"  :h)
       (box-append-with-label plane-box Δu-scale "Δu" :h)
       (box-append-with-label plane-box Δv-scale "Δv" :h)
+      (box-append-with-label plane-box s-scale "s" :h)
       (gtk4:box-append trans-box save-transform)
       (gtk4:box-append trans-box load-transform)
       (flet ((%connect (scale f)
@@ -222,6 +224,7 @@
           (connect  ψ-scale (tran:trans-param-ψ  scene))
           (connect  d-scale (tran:trans-param-d  scene))
           (connect  α-scale (tran:trans-param-α  scene))
+          (connect  s-scale (tran:trans-param-s  scene))
           (connect Δu-scale (tran:trans-param-Δu scene))
           (connect Δv-scale (tran:trans-param-Δv scene))))
       (gtk4:connect

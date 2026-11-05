@@ -6,7 +6,7 @@
   (:export #:register-slice))
 (in-package :slice2volume/optimize)
 
-(serapeum:-> vector->parameters ((simple-array double-float (6)))
+(serapeum:-> vector->parameters ((simple-array double-float (7)))
              (values tran:trans-param &optional))
 (defun vector->parameters (v)
   (tran:trans-param
@@ -15,33 +15,37 @@
    (float (aref v 2) 0f0)
    (float (aref v 3) 0f0)
    (float (aref v 4) 0f0)
-   (float (aref v 5) 0f0)))
+   (float (aref v 5) 0f0)
+   (float (aref v 6) 0f0)))
 
 (serapeum:-> parameters->vector (tran:trans-param)
-             (values (simple-array double-float (6)) &optional))
+             (values (simple-array double-float (7)) &optional))
 (defun parameters->vector (param)
-  (let ((v (make-array 6 :element-type 'double-float)))
+  (let ((v (make-array 7 :element-type 'double-float)))
     (setf (aref v 0)
-          (float (tran:trans-param-Δu param) 0d0)
+          (float (tran:trans-param-s  param) 0d0)
           (aref v 1)
-          (float (tran:trans-param-Δv param) 0d0)
+          (float (tran:trans-param-Δu param) 0d0)
           (aref v 2)
-          (float (tran:trans-param-d  param) 0d0)
+          (float (tran:trans-param-Δv param) 0d0)
           (aref v 3)
-          (float (tran:trans-param-α  param) 0d0)
+          (float (tran:trans-param-d  param) 0d0)
           (aref v 4)
-          (float (tran:trans-param-ϕ  param) 0d0)
+          (float (tran:trans-param-α  param) 0d0)
           (aref v 5)
+          (float (tran:trans-param-ϕ  param) 0d0)
+          (aref v 6)
           (float (tran:trans-param-ψ  param) 0d0))
     v))
 
 (serapeum:-> simplex-Δ (double-float double-float)
              (values (simple-array double-float (*)) &optional))
 (defun simplex-Δ (Δangle Δshift)
-  (make-array 6
+  (make-array 7
               :element-type 'double-float
-              :initial-contents (append (loop repeat 3 collect Δshift)
-                                        (loop repeat 3 collect Δangle))))
+              :initial-contents (cons 5d-2 ; FIXME: Configure this
+                                      (append (loop repeat 3 collect Δshift)
+                                              (loop repeat 3 collect Δangle)))))
 
 (deftype registration-logger ()
   '(function (tran:trans-param single-float) (values &optional)))

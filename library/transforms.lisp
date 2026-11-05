@@ -4,6 +4,7 @@
    ;; Types
    #:trans-param
    ;; Accessors
+   #:trans-param-s
    #:trans-param-α
    #:trans-param-Δu
    #:trans-param-Δv
@@ -63,32 +64,39 @@
          (v1 (v3:cross v2 n)))
     (m3:from-columns v1 v2 n)))
 
-(serapeum:-> planar-transform-matrix (single-float single-float single-float)
+(serapeum:-> planar-transform-matrix (single-float single-float
+                                      single-float single-float)
              (values rtg-math.types:mat3 &optional))
-(defun planar-transform-matrix (ϕ Δu Δv)
+(defun planar-transform-matrix (s ϕ Δu Δv)
   (let ((cos (cos ϕ))
         (sin (sin ϕ)))
-    (m3:make cos (- sin) Δu (+ sin) cos Δv 0.0 0.0 1.0)))
+    (m3:*
+     (diagonal3 s s 1.0)
+     (m3:make cos (- sin) 0.0 (+ sin) cos 0.0 0.0 0.0 1.0)
+     (m3:make 1.0 0.0 Δu 0.0 1.0 Δv 0.0 0.0 1.0))))
 
-(serapeum:-> %plane-world-transform (single-float single-float single-float
-                                     single-float single-float single-float)
+(serapeum:-> %plane-world-transform (single-float single-float
+                                     single-float single-float
+                                     single-float single-float
+                                     single-float)
              (values rtg-math.types:mat3 &optional))
-(defun %plane-world-transform (ϕ ψ d α Δu Δv)
+(defun %plane-world-transform (ϕ ψ d α Δu Δv s)
   (let ((normal (plane-normal ϕ ψ)))
     (m3:*
      (world-transform-matrix
       (choose-tangent-vector normal)
       normal)
      (diagonal3 1.0 1.0 d)
-     (planar-transform-matrix α Δu Δv))))
+     (planar-transform-matrix s α Δu Δv))))
 
-(defstruct (trans-param (:constructor trans-param (Δu Δv d α ϕ ψ)))
-  (Δu 0.0 :type single-float)
-  (Δv 0.0 :type single-float)
+(defstruct (trans-param (:constructor trans-param (s Δu Δv d α ϕ ψ)))
+  (s  0f0 :type single-float)
+  (Δu 0f0 :type single-float)
+  (Δv 0f0 :type single-float)
   ;; Distance to the cutting plane
-  (d  0.0 :type single-float)
+  (d  0f0 :type single-float)
   ;; Plane rotation around plane normal
-  (α  0.0 :type single-float)
+  (α  0f0 :type single-float)
   ;; Normal angles
   (ϕ  0f0 :type single-float)
   (ψ  0f0 :type single-float))
@@ -102,11 +110,13 @@
    (trans-param-d  param)
    (trans-param-α  param)
    (trans-param-Δu param)
-   (trans-param-Δv param)))
+   (trans-param-Δv param)
+   (trans-param-s  param)))
 
 (defmethod conspack:encode-object append
     ((param trans-param) &key &allow-other-keys)
   (list
+   (cons :s  (trans-param-s  param))
    (cons :Δu (trans-param-Δu param))
    (cons :Δv (trans-param-Δv param))
    (cons :d  (trans-param-d  param))
@@ -117,6 +127,7 @@
 (defmethod conspack:decode-object-allocate
     ((class (eql 'trans-param)) alist &key &allow-other-keys)
   (trans-param
+   (cdr (assoc :s  alist))
    (cdr (assoc :Δu alist))
    (cdr (assoc :Δv alist))
    (cdr (assoc :d  alist))
