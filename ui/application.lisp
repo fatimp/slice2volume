@@ -239,7 +239,8 @@
                                   (array-dimensions volume)))
                     (funcall (renderer-volume-uploader renderer) volume)
                     (gtk4:gl-area-queue-render (renderer-area renderer))))
-              (error (c) (error-dialog window c)))))))
+              (error (c) (error-dialog window c)))
+            (values)))))
       (gtk4:connect
        slice-button "clicked"
        (lambda (widget)
@@ -255,7 +256,8 @@
                                   (array-dimensions slice)))
                     (funcall (renderer-slice-uploader renderer) slice)
                     (gtk4:gl-area-queue-render (renderer-area renderer))))
-              (error (c) (error-dialog window c)))))))
+              (error (c) (error-dialog window c)))
+            (values)))))
       (gtk4:connect
        save-transform "clicked"
        (lambda (widget)
@@ -290,6 +292,7 @@
                         (gtk4:range-value Δv-scale)
                         (float (tran:trans-param-Δv scene) 0d0))
                   (gtk4:gl-area-queue-render (renderer-area renderer)))
-              (error (c) (error-dialog window c))))))))
+              (error (c) (error-dialog window c)))
+            (values))))))
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))
