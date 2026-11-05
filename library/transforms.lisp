@@ -104,16 +104,55 @@
    (trans-param-Δu param)
    (trans-param-Δv param)))
 
+(defmethod conspack:encode-object append
+    ((param trans-param) &key &allow-other-keys)
+  (list
+   (cons :Δu (trans-param-Δu param))
+   (cons :Δv (trans-param-Δv param))
+   (cons :d  (trans-param-d  param))
+   (cons :α  (trans-param-α  param))
+   (cons :ϕ  (trans-param-ϕ  param))
+   (cons :ψ  (trans-param-ψ  param))))
+
+(defmethod conspack:decode-object-allocate
+    ((class (eql 'trans-param)) alist &key &allow-other-keys)
+  (trans-param
+   (cdr (assoc :Δu alist))
+   (cdr (assoc :Δv alist))
+   (cdr (assoc :d  alist))
+   (cdr (assoc :α  alist))
+   (cdr (assoc :ϕ  alist))
+   (cdr (assoc :ψ  alist))))
+
+(defmethod conspack:decode-object-initialize progn
+    ((object trans-param) class alist &key &allow-other-keys)
+  (declare (ignore class alist))
+  object)
+
 (serapeum:-> store-trans-param (trans-param (or pathname string))
              (values &optional))
 (defun store-trans-param (param name)
-  (cl-store:store param name)
+  (with-open-file (out name :direction         :output
+                            :if-does-not-exist :create
+                            :if-exists         :supersede
+                            :element-type      '(unsigned-byte 8))
+    (write-sequence
+     (let ((stream (fast-io:make-output-buffer)))
+       (conspack:encode-to-buffer param stream)
+       (fast-io:finish-output-buffer stream))
+     out))
   (values))
 
 (serapeum:-> load-trans-param ((or pathname string))
              (values trans-param &optional))
 (defun load-trans-param (name)
-  (cl-store:restore name))
+  (with-open-file (in name :element-type '(unsigned-byte 8))
+    (let ((octets (make-array (file-length in) :element-type '(unsigned-byte 8))))
+      (unless (= (read-sequence octets in)
+                 (length octets))
+        (error "Cannot read transform parameters"))
+      (let ((stream (fast-io:make-input-buffer :vector octets)))
+        (conspack:decode-value stream)))))
 
 (serapeum:-> trans-copy-into! (trans-param trans-param)
              (values &optional))

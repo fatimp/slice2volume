@@ -12,7 +12,7 @@
                  :cl-libtiff
                  :rtg-math
                  :float-features
-                 :cl-store
+                 :cl-conspack
                  :cl-optim
                  :slice2volume/loaders
                  :slice2volume/transforms
