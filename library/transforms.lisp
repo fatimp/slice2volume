@@ -179,5 +179,7 @@
         (trans-param-ϕ  dst)
         (trans-param-ϕ  src)
         (trans-param-ψ  dst)
-        (trans-param-ψ  src))
+        (trans-param-ψ  src)
+        (trans-param-s  dst)
+        (trans-param-s  src))
   (values))
