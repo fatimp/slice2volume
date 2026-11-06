@@ -16,6 +16,7 @@
                  :cl-optim
                  :slice2volume/loaders
                  :slice2volume/transforms
+                 :slice2volume/viewport
                  :slice2volume/downsample
                  :slice2volume/slicer
                  :slice2volume/normalize
