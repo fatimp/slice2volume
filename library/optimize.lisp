@@ -38,14 +38,14 @@
           (float (tran:trans-param-ψ  param) 0d0))
     v))
 
-(serapeum:-> simplex-Δ (double-float double-float)
+(serapeum:-> simplex-Δ (double-float double-float double-float)
              (values (simple-array double-float (*)) &optional))
-(defun simplex-Δ (Δangle Δshift)
+(defun simplex-Δ (Δangle Δshift Δscale)
   (make-array 7
               :element-type 'double-float
-              :initial-contents (cons 5d-2 ; FIXME: Configure this
-                                      (append (loop repeat 3 collect Δshift)
-                                              (loop repeat 3 collect Δangle)))))
+              :initial-contents (list Δscale
+                                      Δshift Δshift Δshift
+                                      Δangle Δangle Δangle)))
 
 (deftype registration-logger ()
   '(function (tran:trans-param single-float) (values &optional)))
@@ -63,6 +63,7 @@
                              (:xstol          double-float)
                              (:Δangle         double-float)
                              (:Δshift         double-float)
+                             (:Δscale         double-float)
                              (:logger         registration-logger))
              (values tran:trans-param
                      double-float
@@ -75,6 +76,7 @@
                          (xstol          1d-6)
                          (Δangle         5d-2)
                          (Δshift         5d-2)
+                         (Δscale         1d-1)
                          (logger #'dummy-logger))
   (let ((height (array-dimension slice 0))
         (width  (array-dimension slice 1)))
@@ -91,7 +93,7 @@
            #'target
            (cl-optim:make-initial-simplex
             (parameters->vector initial-guess)
-            (simplex-Δ Δangle Δshift))
+            (simplex-Δ Δangle Δshift Δscale))
            :max-iterations max-iterations
            :ftol           ftol
            :xstol          xstol)

@@ -27,6 +27,10 @@
             :short       #\v
             :long        "verbose"
             :description "Be verbose")
+    (option :Δscale      "Δs"
+            :long        "delta-scale"
+            :fn          (float-parser 'double-float)
+            :description "Initial delta for scale parameter")
     (option :Δangle      "Δa"
             :long        "delta-angle"
             :fn          (float-parser 'double-float)
@@ -93,6 +97,7 @@
          (ftol       (%assoc :ftol       argv 1d-6))
          (Δshift     (%assoc :Δshift     argv 5d-2))
          (Δangle     (%assoc :Δangle     argv 5d-2))
+         (Δscale     (%assoc :Δscale     argv 1d-1))
          (verbose    (%assoc :verbose    argv))
 
          (fixed  (norm:normalize-image
@@ -112,6 +117,7 @@
                             :xstol          xstol
                             :Δshift         Δshift
                             :Δangle         Δangle
+                            :Δscale         Δscale
                             :logger         #'logger)
       (log:info "Done in ~d steps. Final score: ~f" steps score)
       (tran:store-trans-param transform output))))
