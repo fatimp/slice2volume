@@ -114,6 +114,4 @@
                             :Δangle         Δangle
                             :logger         #'logger)
       (log:info "Done in ~d steps. Final score: ~f" steps score)
-      (when (> score -1.5)
-        (log:warn "Registration has most likely failed"))
       (tran:store-trans-param transform output))))
