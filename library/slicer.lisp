@@ -1,6 +1,8 @@
 (defpackage slice2volume/slicer
   (:use #:cl)
-  (:local-nicknames (#:ff #:float-features))
+  (:local-nicknames (#:ff   #:float-features)
+                    (#:tran #:slice2volume/transforms)
+                    (#:view #:slice2volume/viewport))
   (:export #:slice))
 (in-package :slice2volume/slicer)
 
@@ -21,9 +23,9 @@
   (declare (optimize (speed 3)))
   (flet ((coord (x d)
            (* d (/ (1+ x) 2))))
-    (serapeum:mvlet ((qi ri (floor (coord (aref v 2) (array-dimension array 2))))
+    (serapeum:mvlet ((qi ri (floor (coord (aref v 2) (array-dimension array 0))))
                      (qj rj (floor (coord (aref v 1) (array-dimension array 1))))
-                     (qk rk (floor (coord (aref v 0) (array-dimension array 0)))))
+                     (qk rk (floor (coord (aref v 0) (array-dimension array 2)))))
       (declare (type fixnum qi qj qk))
       ;; For code formatting
       (flet ((id (x) x))
@@ -54,15 +56,28 @@
              (values (simple-array single-float 2) &optional))
 (defun slice (volume height width transform)
   (declare (optimize (speed 3)))
-  (flet ((normalize-coord (x d)
-           (float (1- (/ (* 2 x) (1- d))))))
-    (let ((res (make-array (list height width) :element-type 'single-float)))
-      (loop for i below height do
-        (loop for j below width do
-          (let* ((coord (m3:*v transform
-                               (v3:make (normalize-coord j width)
-                                        (normalize-coord i height)
-                                        1.0)))
-                 (pixel (interpolate volume coord ff:single-float-nan)))
-            (setf (aref res i j) pixel))))
-      res)))
+  (multiple-value-bind (x-start y-start vp-width vp-height)
+      (multiple-value-call
+          #'view:viewport-dimensions
+        (view:slice-viewport-size
+         transform
+         (array-dimension volume 2)
+         (array-dimension volume 1)
+         (array-dimension volume 0))
+        width height)
+    (flet ((normalize-coord (x d)
+             (float (1- (/ (* 2 x) (1- d))))))
+    (let ((x-end (+ x-start vp-width))
+          (y-end (+ y-start vp-height))
+          (res (make-array (list height width) :element-type 'single-float)))
+      (loop for y below height do
+        (loop for x below width do
+          (setf (aref res y x)
+                (if (and (>= y y-start) (< y y-end)
+                         (>= x x-start) (< x x-end))
+                    (let* ((x (normalize-coord (- x x-start) vp-width))
+                           (y (normalize-coord (- y y-start) vp-height))
+                           (coord (m3:*v transform (v3:make x y 1.0))))
+                      (interpolate volume coord ff:single-float-nan))
+                    ff:single-float-nan))))
+      res))))
