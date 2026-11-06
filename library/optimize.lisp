@@ -66,7 +66,7 @@
                              (:Δscale         double-float)
                              (:logger         registration-logger))
              (values tran:trans-param
-                     double-float
+                     double-float double-float
                      alexandria:positive-fixnum &optional))
 (defun register-slice (slice volume initial-guess
                        &key
@@ -80,21 +80,27 @@
                          (logger #'dummy-logger))
   (let ((height (array-dimension slice 0))
         (width  (array-dimension slice 1)))
-    (flet ((target (trans)
-             (let* ((params (vector->parameters trans))
-                    (%slice (slice:slice
-                             volume height width
-                             (tran:plane-world-transform params)))
-                    (mi (mi:mutual-information slice %slice nbins)))
-               (funcall logger params mi)
-               (* mi -1d0))))
-      (multiple-value-bind (result cost steps)
-          (cl-optim:nelder-mead
-           #'target
-           (cl-optim:make-initial-simplex
-            (parameters->vector initial-guess)
-            (simplex-Δ Δangle Δshift Δscale))
-           :max-iterations max-iterations
-           :ftol           ftol
-           :xstol          xstol)
-        (values (vector->parameters result) cost steps)))))
+    (labels ((%target (params)
+               (let* ((%slice (slice:slice
+                               volume height width
+                               (tran:plane-world-transform params)))
+                      (mi (mi:mutual-information slice %slice nbins)))
+                 (funcall logger params mi)
+                 (* mi -1d0)))
+             (target (trans)
+               (%target(vector->parameters trans))))
+      (declare (inline %target))
+      (let ((initial-cost (%target initial-guess)))
+        (multiple-value-bind (result final-cost steps)
+            (cl-optim:nelder-mead
+             #'target
+             (cl-optim:make-initial-simplex
+              (parameters->vector initial-guess)
+              (simplex-Δ Δangle Δshift Δscale))
+             :max-iterations max-iterations
+             :ftol           ftol
+             :xstol          xstol)
+          (values (vector->parameters result)
+                  (- initial-cost)
+                  (- final-cost)
+                  steps))))))

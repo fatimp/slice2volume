@@ -109,7 +109,7 @@
          (initial (tran:load-trans-param initial)))
 
     (log:config (if verbose :debug :info))
-    (multiple-value-bind (transform score steps)
+    (multiple-value-bind (transform initial-cost final-cost steps)
         (opt:register-slice fixed moving initial
                             :nbins          nbins
                             :max-iterations max-iter
@@ -119,5 +119,6 @@
                             :Δangle         Δangle
                             :Δscale         Δscale
                             :logger         #'logger)
-      (log:info "Done in ~d steps. Final score: ~f" steps score)
+      (log:info "Done in ~d steps. Initial cost: ~f. Final cost: ~f"
+                steps initial-cost final-cost)
       (tran:store-trans-param transform output))))
