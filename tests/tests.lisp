@@ -10,6 +10,22 @@
 
 (def-suite mi :description "Mutual information function")
 
+;; White noise
+(serapeum:-> add-noise ((simple-array single-float (* *))
+                        (single-float 0.0))
+             (values (simple-array single-float (* *)) &optional))
+(defun add-noise (array amount)
+  (let ((result (make-array (array-dimensions array)
+                            :element-type 'single-float)))
+    (loop for i below (array-total-size result) do
+      (setf (row-major-aref result i)
+            (norm:clamp (+ (row-major-aref array i)
+                           (random (* amount 2))
+                           (- amount))
+                        0 1)))
+    result))
+
+;; Low frequency noise
 (serapeum:-> make-noise (alexandria:positive-fixnum single-float fixnum)
              (values (simple-array (unsigned-byte 8) (* *)) &optional))
 (defun make-noise (n z seed)
@@ -58,6 +74,14 @@
     (+ min (random (- max min)))))
 
 (in-suite mi)
+(test mi-noise
+  (for-all ((seed  (gen-integer      :min 0   :max 1000000))
+            (size  (gen-integer      :min 800 :max 2500)))
+    (let* ((noise1 (norm:normalize-image
+                    (make-noise size 0.0 seed)
+                    0.02))
+           (noise2 (add-noise noise1 0.0001)))
+      (is (> (mi:mutual-information noise1 noise2 15) 1.8)))))
 
 (test mi-gamma-correction
   (for-all ((seed  (gen-integer      :min 0   :max 1000000))
