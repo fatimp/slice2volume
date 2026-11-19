@@ -70,7 +70,7 @@ histogramm is all-zero."
              (values single-float &optional))
 (declaim (inline info))
 (defun info (p)
-  (if (< p 1f-6) 0.0
+  (if (zerop p) 0.0
       (- (* p (log p)))))
 
 (serapeum:-> mutual-information ((simple-array single-float (* *))
