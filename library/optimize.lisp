@@ -54,6 +54,10 @@
   (declare (ignore parameters mi))
   (values))
 
+(deftype preprocessor ()
+  `(function ((simple-array single-float (* *)))
+             (values (simple-array single-float (* *)) &optional)))
+
 (serapeum:-> register-slice ((simple-array single-float (* *))
                              (simple-array single-float (* * *))
                              tran:trans-param &key
@@ -64,7 +68,8 @@
                              (:Δangle         double-float)
                              (:Δshift         double-float)
                              (:Δscale         double-float)
-                             (:logger         registration-logger))
+                             (:logger         registration-logger)
+                             (:preprocessor   preprocessor))
              (values tran:trans-param
                      double-float double-float
                      alexandria:positive-fixnum &optional))
@@ -77,13 +82,17 @@
                          (Δangle         5d-2)
                          (Δshift         5d-2)
                          (Δscale         1d-1)
-                         (logger #'dummy-logger))
-  (let ((height (array-dimension slice 0))
-        (width  (array-dimension slice 1)))
+                         (logger         #'dummy-logger)
+                         (preprocessor   #'identity))
+  (let* ((slice (funcall preprocessor slice))
+         (height (array-dimension slice 0))
+         (width  (array-dimension slice 1)))
     (labels ((%target (params)
-               (let* ((%slice (slice:slice
-                               volume height width
-                               (tran:plane-world-transform params)))
+               (let* ((%slice (funcall
+                               preprocessor
+                               (slice:slice
+                                volume height width
+                                (tran:plane-world-transform params))))
                       (mi (mi:mutual-information slice %slice nbins)))
                  (funcall logger params mi)
                  (* mi -1d0)))

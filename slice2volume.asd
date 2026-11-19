@@ -18,6 +18,7 @@
                  :slice2volume/transforms
                  :slice2volume/viewport
                  :slice2volume/downsample
+                 :slice2volume/gaussian-blur
                  :slice2volume/slicer
                  :slice2volume/normalize
                  :slice2volume/mutual-information

@@ -16,8 +16,8 @@
 (defun float-parser (type)
   (lambda (string)
     (let ((x (pf:parse-float string :type type)))
-      (unless (plusp x)
-        (error "Must be positive float"))
+      (when (minusp x)
+        (error "Must be non-negative float"))
       x)))
 
 (defparameter *parser*
@@ -54,6 +54,11 @@
             :short       #\r
             :fn          (float-parser 'single-float)
             :description "Normalization clip ratio")
+    (option :σ           "σ"
+            :short       #\s
+            :long        "blur-sigma"
+            :fn          (float-parser 'single-float)
+            :description "Gaussian blur parameter")
     (option :xstol       "XSTOL"
             :long        "xstol"
             :short       #\t
@@ -98,6 +103,7 @@
          (Δshift     (%assoc :Δshift     argv 5d-2))
          (Δangle     (%assoc :Δangle     argv 5d-2))
          (Δscale     (%assoc :Δscale     argv 1d-1))
+         (σ          (%assoc :σ          argv 1.6))
          (verbose    (%assoc :verbose    argv))
 
          (fixed  (norm:normalize-image
@@ -110,15 +116,18 @@
 
     (log:config (if verbose :debug :info))
     (multiple-value-bind (transform initial-cost final-cost steps)
-        (opt:register-slice fixed moving initial
-                            :nbins          nbins
-                            :max-iterations max-iter
-                            :ftol           ftol
-                            :xstol          xstol
-                            :Δshift         Δshift
-                            :Δangle         Δangle
-                            :Δscale         Δscale
-                            :logger         #'logger)
+        (flet ((preprocess (image)
+                 (blur:gaussian-blur image σ)))
+          (opt:register-slice fixed moving initial
+                              :nbins          nbins
+                              :max-iterations max-iter
+                              :ftol           ftol
+                              :xstol          xstol
+                              :Δshift         Δshift
+                              :Δangle         Δangle
+                              :Δscale         Δscale
+                              :logger         #'logger
+                              :preprocessor   #'preprocess))
       (log:info "Done in ~d steps. Initial cost: ~f. Final cost: ~f"
                 steps initial-cost final-cost)
       (tran:store-trans-param transform output))))
