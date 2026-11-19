@@ -11,22 +11,25 @@
    (1- nbins)))
 
 (serapeum:-> normalize ((simple-array (unsigned-byte 64) (* *)))
-             (values (simple-array single-float (* *)) &optional))
+             (values (or (simple-array single-float (* *)) null) &optional))
 (defun normalize (histogram)
+  "Normalize a histogram. This function may return NIL if the
+histogramm is all-zero."
   (declare (optimize (speed 3)))
-  (let ((result (make-array (array-dimensions histogram)
-                            :element-type 'single-float))
-        (total (reduce #'+ (sb-ext:array-storage-vector histogram))))
-    (map-into (sb-ext:array-storage-vector result)
-              (lambda (x)
-                (float (/ x total)))
-              (sb-ext:array-storage-vector histogram))
-    result))
+  (let ((total (reduce #'+ (sb-ext:array-storage-vector histogram))))
+    (unless (zerop total)
+      (let ((result (make-array (array-dimensions histogram)
+                                :element-type 'single-float)))
+        (map-into (sb-ext:array-storage-vector result)
+                  (lambda (x)
+                      (float (/ x total)))
+                  (sb-ext:array-storage-vector histogram))
+        result))))
 
 (serapeum:-> joint-histogram ((simple-array single-float (* *))
                               (simple-array single-float (* *))
                               alexandria:positive-fixnum)
-             (values (simple-array single-float (* *)) &optional))
+             (values (or (simple-array single-float (* *)) null) &optional))
 (defun joint-histogram (img1 img2 nbins)
   (declare (optimize (speed 3)))
   (unless (equalp (array-dimensions img1)
@@ -76,14 +79,17 @@
              (values single-float &optional))
 (defun mutual-information (img1 img2 nbins)
   (declare (optimize (speed 3)))
-  (let* ((hist (joint-histogram img1 img2 nbins))
-         (m1 (loop for i below nbins sum
-                   (info (sum-row hist i))
-                   single-float))
-         (m2 (loop for i below nbins sum
-                   (info (sum-column hist i))
-                   single-float))
-         (j  (loop for i below (array-total-size hist) sum
-                   (info (row-major-aref hist i))
-                   single-float)))
-    (/ (+ m1 m2) j)))
+  (let ((hist (joint-histogram img1 img2 nbins)))
+    (if hist
+        (let ((m1 (loop for i below nbins
+                        sum (info (sum-row hist i))
+                        single-float))
+              (m2 (loop for i below nbins
+                        sum (info (sum-column hist i))
+                        single-float))
+              (j  (loop for i below (array-total-size hist)
+                        sum (info (row-major-aref hist i))
+                        single-float)))
+          (/ (+ m1 m2) j))
+        ;; Images do not overlap, return minimal possible MI
+        1.0)))
