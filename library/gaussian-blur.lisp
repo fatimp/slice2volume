@@ -1,8 +1,10 @@
-;; TODO: Part of this code is used in shamazmazum/sift. Move this code to a separate library?
+;; TODO: This code is used in shamazmazum/sift. Move this code to a separate library?
 (defpackage slice2volume/gaussian-blur
   (:use #:cl)
   (:local-nicknames (#:sera #:serapeum)
-                    (#:alex #:alexandria))
+                    (#:alex #:alexandria)
+                    (#:norm #:slice2volume/normalize)
+                    (#:fftw #:cl-fftw/single))
   (:export #:gaussian-blur))
 (in-package :slice2volume/gaussian-blur)
 
@@ -46,29 +48,78 @@
               (aref kernel-1d j))))
     kernel))
 
-(declaim (inline safe-aref))
-(defun safe-aref (a i j b)
-  (declare (optimize (sb-c:insert-array-bounds-checks 0)))
-  (if (array-in-bounds-p a i j)
-      (aref a i j) b))
+(sera:-> gaussian-kernel-padded (alex:positive-fixnum
+                                 alex:positive-fixnum
+                                 (single-float 0f0))
+         (values (simple-array single-float (* *)) &optional))
+(defun gaussian-kernel-padded (h w σ)
+  (let* ((kernel (make-array (list h w)
+                             :element-type 'single-float
+                             :initial-element 0f0))
+         (kernel-tight (gaussian-kernel σ))
+         (size (array-dimension kernel-tight 0))
+         (width (floor size 2)))
+    (flet ((centered-idx (i q)
+             (mod (- i width) q)))
+      ;; TODO: Check that tight-dimensions <= dimensions
+      (loop-array (kernel-tight (i j))
+        (setf (aref kernel (centered-idx i h) (centered-idx j w))
+              (aref kernel-tight i j))))
+    kernel))
+
+(sera:-> extract-overlap-mask ((simple-array single-float (* *)))
+         (values (simple-array single-float (* *))
+                 (simple-array single-float (* *))
+                 &optional))
+(defun extract-overlap-mask (array)
+  (declare (optimize (speed 3)))
+  (let ((image (make-array (array-dimensions array)
+                           :element-type 'single-float))
+        (mask  (make-array (array-dimensions array)
+                           :element-type 'single-float)))
+    (loop for i below (array-total-size array)
+          for x = (row-major-aref array i)
+          do (setf (row-major-aref mask i)
+                   (if (= x x) 1.0 x)
+                   (row-major-aref image i)
+                   (if (= x x) x 0.0)))
+    (values image mask)))
+
+(sera:-> apply-overlap-mask! ((simple-array single-float (* *))
+                              (simple-array single-float (* *)))
+         (values (simple-array single-float (* *)) &optional))
+(defun apply-overlap-mask! (image mask)
+  (declare (optimize (speed 3)))
+  (loop for i below (array-total-size image)
+        do (setf (row-major-aref image i)
+                 (* (norm:clamp (row-major-aref image i) 0 1)
+                    (row-major-aref mask  i))))
+  image)
 
 (sera:-> gaussian-blur ((simple-array single-float (* *))
                         (single-float 0f0))
          (values (simple-array single-float (* *)) &optional))
 (defun gaussian-blur (array σ)
   (declare (optimize (speed 3)))
-  (let* ((kernel (gaussian-kernel σ))
-         (w (floor (array-dimension kernel 0) 2))
-         (result (make-array (array-dimensions array)
-                             :element-type 'single-float
-                             :initial-element 0.0)))
-    (loop-array (result (i j))
-      (loop-array (kernel (k l))
-        (incf (aref result i j)
-              (* (aref kernel k l)
-                 (safe-aref array
-                            (+ i k (- w))
-                            (+ j l (- w))
-                            ;; Background pixel
-                            0)))))
-    result))
+  (let ((dimensions (array-dimensions array))
+        (size       (array-total-size array))
+        (kernel (gaussian-kernel-padded
+                 (array-dimension array 0)
+                 (array-dimension array 1)
+                 σ)))
+    (multiple-value-bind (image mask)
+        (extract-overlap-mask array)
+      (apply-overlap-mask!
+       (fftw:%irfft
+        (fftw:with-rfft-plan (plan dimensions)
+          (let ((image-fft  (fftw:rfft plan image))
+                (kernel-fft (fftw:rfft plan kernel)))
+            (loop for i below (array-total-size image-fft) do
+              (setf (row-major-aref image-fft i)
+                    (/ (* (row-major-aref image-fft  i)
+                          (row-major-aref kernel-fft i))
+                       ;; Normalize
+                       size)))
+            image-fft))
+        dimensions)
+       mask))))

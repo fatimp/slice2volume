@@ -74,3 +74,7 @@
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
   :version "ql-2023-02-14"))
+("cl-fftw" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/cl-fftw" :ref nil :branch nil :tag "v0.3")
+  :version "github-773de07e0799cf5850a5f4fc1a751a8d0ce109a1"))

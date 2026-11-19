@@ -1,6 +1,7 @@
 (defpackage slice2volume/normalize
   (:use #:cl)
-  (:export #:normalize-image))
+  (:export #:normalize-image
+           #:clamp))
 (in-package :slice2volume/normalize)
 
 (serapeum:-> scan-vector (vector)

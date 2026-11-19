@@ -14,13 +14,14 @@
                  :float-features
                  :cl-conspack
                  :cl-optim
+                 :cl-fftw
                  :slice2volume/loaders
                  :slice2volume/transforms
                  :slice2volume/viewport
                  :slice2volume/downsample
+                 :slice2volume/normalize
                  :slice2volume/gaussian-blur
                  :slice2volume/slicer
-                 :slice2volume/normalize
                  :slice2volume/mutual-information
                  :slice2volume/optimize)
     :in-order-to ((test-op (load-op "slice2volume/tests")))
