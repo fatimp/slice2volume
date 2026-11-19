@@ -4,12 +4,6 @@
              (values &optional))
 (defun add-filters-to-file-chooser-dialog (dialog type)
   (let ((loaders (load:loaders type)))
-    (loop for loader in loaders
-          for filter = (gtk4:make-file-filter) do
-            (loop for type in (load:loader-types loader) do
-              (gtk4:file-filter-add-suffix filter type))
-            (setf (gtk4:file-filter-name filter) (load:loader-description loader))
-            (gtk4:file-chooser-add-filter dialog filter))
     (when (cdr loaders)
       (loop with filter = (gtk4:make-file-filter)
             for loader in loaders do
@@ -17,7 +11,13 @@
                 (gtk4:file-filter-add-suffix filter type))
             finally
                (setf (gtk4:file-filter-name filter) "All supported formats")
-               (gtk4:file-chooser-add-filter dialog filter))))
+               (gtk4:file-chooser-add-filter dialog filter)))
+    (loop for loader in loaders
+          for filter = (gtk4:make-file-filter) do
+            (loop for type in (load:loader-types loader) do
+              (gtk4:file-filter-add-suffix filter type))
+            (setf (gtk4:file-filter-name filter) (load:loader-description loader))
+            (gtk4:file-chooser-add-filter dialog filter)))
   (values))
 
 (deftype dialog-type () '(or (eql :trans) load:loader-type))
