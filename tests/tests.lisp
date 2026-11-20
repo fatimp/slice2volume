@@ -1,7 +1,7 @@
 (in-package :slice2volume/tests)
 
-(defun run-tests ()
-  (let ((*num-trials* 10))
+(defun run-tests (&optional CIp)
+  (let ((*num-trials* (if CIp 10 *num-trials*)))
     (every #'identity
            (mapcar (lambda (suite)
                      (let ((status (run suite)))

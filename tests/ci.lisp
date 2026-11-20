@@ -4,7 +4,7 @@
     (error ()
       (uiop:quit 1)))
   (uiop:quit
-   (if (uiop:call-function "slice2volume/tests:run-tests")
+   (if (uiop:call-function "slice2volume/tests:run-tests" t)
        0 1)))
 
 (do-all)
