@@ -16,6 +16,7 @@
                         (single-float 0.0))
              (values (simple-array single-float (* *)) &optional))
 (defun add-noise (array amount)
+  (declare (optimize (speed 3)))
   (let ((result (make-array (array-dimensions array)
                             :element-type 'single-float)))
     (loop for i below (array-total-size result) do
@@ -62,6 +63,7 @@
 (serapeum:-> invert-color ((simple-array single-float (* *)))
              (values (simple-array single-float (* *)) &optional))
 (defun invert-color (array)
+  (declare (optimize (speed 3)))
   (let ((result (make-array (array-dimensions array)
                             :element-type 'single-float)))
     (loop for i below (array-total-size result) do
@@ -69,11 +71,26 @@
             (- 1 (row-major-aref array i))))
     result))
 
+(serapeum:-> add-constant ((simple-array single-float (* *))
+                           single-float)
+             (values (simple-array single-float (* *)) &optional))
+(defun add-constant (array c)
+  (declare (optimize (speed 3)))
+  (let ((result (make-array (array-dimensions array)
+                            :element-type 'single-float)))
+    (loop for i below (array-total-size result) do
+      (setf (row-major-aref result i)
+            (norm:clamp
+             (+ (row-major-aref array i) c)
+             0.0 1.0)))
+    result))
+
 (defun gen-single-float (&key min max)
   (assert (<= min max))
   (lambda ()
     (+ min (random (- max min)))))
 
+;; MI bounds are as tight as possible. Some of them are too small IMHO
 (in-suite mi)
 (test mi-noise
   (for-all ((seed  (gen-integer      :min 0   :max 1000000))
@@ -81,8 +98,8 @@
     (let* ((noise1 (norm:normalize-image
                     (make-noise size 0.0 seed)
                     0.02))
-           (noise2 (add-noise noise1 0.0001)))
-      (is (> (mi:mutual-information noise1 noise2 15) 1.8)))))
+           (noise2 (add-noise noise1 0.05)))
+      (is (> (mi:mutual-information noise1 noise2 15) 1.5)))))
 
 (test mi-gamma-correction
   (for-all ((seed  (gen-integer      :min 0   :max 1000000))
@@ -104,10 +121,9 @@
            (noise2 (norm:normalize-image
                     (make-noise size shift seed)
                     0.02)))
-      ;; FIXME: Too small value
       (is (> (mi:mutual-information noise1 noise2 15) 1.2)))))
 
-(test mi-prop
+(test mi-range
   (for-all ((seed1 (gen-integer :min 0   :max 1000000))
             (seed2 (gen-integer :min 0   :max 1000000))
             (size  (gen-integer :min 800 :max 2500)))
@@ -127,4 +143,14 @@
                    (make-noise size 0.0 seed)
                    0.02))
            (invert (invert-color noise)))
-      (is (> (mi:mutual-information noise invert 15) 1.6)))))
+      (is (> (mi:mutual-information noise invert 15) 1.9)))))
+
+(test mi-add
+  (for-all ((seed  (gen-integer      :min 0    :max 1000000))
+            (size  (gen-integer      :min 800  :max 2500))
+            (const (gen-single-float :min -0.1 :max +0.1)))
+    (let* ((noise (norm:normalize-image
+                   (make-noise size 0.0 seed)
+                   0.02))
+           (%noise (add-constant noise const)))
+      (is (> (mi:mutual-information noise %noise 15) 1.5)))))
