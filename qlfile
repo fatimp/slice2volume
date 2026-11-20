@@ -15,5 +15,5 @@ github shamazmazum/cl-value-noise
 github shamazmazum/command-line-parse
 ql parse-float
 ql log4cl
-ql cl-conspack
 github shamazmazum/cl-fftw :tag v0.3
+github conspack/cl-conspack
