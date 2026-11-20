@@ -1,12 +1,13 @@
 (in-package :slice2volume/tests)
 
 (defun run-tests ()
-  (every #'identity
-         (mapcar (lambda (suite)
-                   (let ((status (run suite)))
-                     (explain! status)
-                     (results-status status)))
-                 '(mi))))
+  (let ((*num-trials* 10))
+    (every #'identity
+           (mapcar (lambda (suite)
+                     (let ((status (run suite)))
+                       (explain! status)
+                       (results-status status)))
+                   '(mi)))))
 
 (def-suite mi :description "Mutual information function")
 
