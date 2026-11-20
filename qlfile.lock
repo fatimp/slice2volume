@@ -70,11 +70,11 @@
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
   :version "ql-2023-06-18"))
-("cl-conspack" .
- (:class qlot/source/ql:source-ql
-  :initargs (:%version :latest)
-  :version "ql-2023-02-14"))
 ("cl-fftw" .
  (:class qlot/source/github:source-github
   :initargs (:repos "shamazmazum/cl-fftw" :ref nil :branch nil :tag "v0.3")
   :version "github-773de07e0799cf5850a5f4fc1a751a8d0ce109a1"))
+("cl-conspack" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "conspack/cl-conspack" :ref nil :branch nil :tag nil)
+  :version "github-6e529d7b3a7223ef1bb5c7b9f18384ba67b50b09"))
