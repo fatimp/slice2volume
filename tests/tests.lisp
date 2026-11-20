@@ -23,7 +23,7 @@
             (norm:clamp (+ (row-major-aref array i)
                            (random (* amount 2))
                            (- amount))
-                        0 1)))
+                        0.0 1.0)))
     result))
 
 ;; Low frequency noise
