@@ -47,6 +47,29 @@
                                       Δshift Δshift Δshift
                                       Δangle Δangle Δangle)))
 
+(serapeum:-> wrap-angles! (tran:trans-param)
+             (values tran:trans-param &optional))
+(defun wrap-angles! (param)
+  (declare (optimize (speed 3)))
+  (let ((π (float pi 0f0)))
+    (setf (tran:trans-param-α param)
+          (- (mod (+ (tran:trans-param-α param) π) (* 2 π)) π)
+          (tran:trans-param-ϕ param)
+          (mod (tran:trans-param-ϕ param) (* 2 π))))
+  param)
+
+(serapeum:-> bind-ψ (single-float)
+             (values (single-float 0.0 1.0) &optional))
+(defun bind-ψ (ψ)
+  (declare (optimize (speed 3)))
+  (let ((π/2 (/ (float pi 0f0) 2)))
+    (cond
+      ((< ψ (- π/2))
+       (exp (- (* 100.0 (- (- π/2) ψ)))))
+      ((> ψ (+ π/2))
+       (exp (- (* 100.0 (- ψ π/2)))))
+      (t 1.0))))
+
 (deftype registration-logger ()
   '(function (tran:trans-param single-float) (values &optional)))
 
@@ -93,7 +116,8 @@
                                (slice:slice
                                 volume height width
                                 (tran:plane-world-transform params))))
-                      (mi (mi:mutual-information slice %slice nbins)))
+                      (mi (* (mi:mutual-information slice %slice nbins)
+                             (bind-ψ (tran:trans-param-ψ params)))))
                  (funcall logger params mi)
                  (* mi -1d0)))
              (target (trans)
@@ -109,7 +133,7 @@
              :max-iterations max-iterations
              :ftol           ftol
              :xstol          xstol)
-          (values (vector->parameters result)
+          (values (wrap-angles! (vector->parameters result))
                   (- initial-cost)
                   (- final-cost)
                   steps))))))
