@@ -99,13 +99,15 @@
     (gtk4:widget-show dialog))
   (values))
 
-(serapeum:-> expand-widget (gir::object-instance)
+(serapeum:-> expand-widget (gir::object-instance &key (:hp boolean) (:vp boolean))
              (values &optional))
-(defun expand-widget (widget)
-  (setf (gtk4:widget-hexpand-p widget) t
-        (gtk4:widget-vexpand-p widget) t
-        (gtk4:widget-halign    widget) gtk4:+align-fill+
-        (gtk4:widget-valign    widget) gtk4:+align-fill+)
+(defun expand-widget (widget &key (hp t) (vp t))
+  (when hp
+    (setf (gtk4:widget-hexpand-p widget) t
+          (gtk4:widget-halign    widget) gtk4:+align-fill+))
+  (when vp
+    (setf (gtk4:widget-vexpand-p widget) t
+          (gtk4:widget-valign    widget) gtk4:+align-fill+))
   (values))
 
 (serapeum:-> box-append-with-label (gir::object-instance gir::object-instance
@@ -166,6 +168,8 @@
                                         :spacing 5))
            (opts-box     (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                         :spacing 5))
+           (label-box    (gtk4:make-box :orientation gtk4:+orientation-horizontal+
+                                        :spacing 0))
            (load-frame  (gtk4:make-frame :label "Data Loading"))
            (trans-frame (gtk4:make-frame :label "Result exporting"))
            (cut-frame   (gtk4:make-frame :label "Cutting Plane Control"))
@@ -173,7 +177,8 @@
            (opts-frame  (gtk4:make-frame :label "Rendering options"))
 
            (renderer (make-drawing-area scene options))
-           (status (gtk4:make-label :str "Welcome to Slice2Volume"))
+           (slice-label  (gtk4:make-label :str "No slice loaded"))
+           (volume-label (gtk4:make-label :str "No volume loaded"))
            ;; Data loading
            (slice-button   (gtk4:make-button :label "Load Slice"))
            (volume-button  (gtk4:make-button :label "Load Volume"))
@@ -199,7 +204,7 @@
             (gtk4:frame-child  opts-frame)  opts-box)
       (expand-widget (renderer-area renderer))
       (gtk4:box-append toplevel-box huge-box)
-      (gtk4:box-append toplevel-box status)
+      (gtk4:box-append toplevel-box label-box)
       (gtk4:box-append huge-box (renderer-area renderer))
       (gtk4:box-append huge-box big-box)
       (gtk4:box-append big-box  load-frame)
@@ -209,6 +214,10 @@
       (gtk4:box-append big-box  opts-frame)
       (gtk4:box-append load-box slice-button)
       (gtk4:box-append load-box volume-button)
+      (gtk4:box-append label-box slice-label)
+      (gtk4:box-append label-box volume-label)
+      (expand-widget slice-label  :vp nil)
+      (expand-widget volume-label :vp nil)
       (box-append-with-label cut-box ϕ-scale "ϕ" :h)
       (box-append-with-label cut-box ψ-scale "ψ" :h)
       (box-append-with-label cut-box d-scale  "d"  :h)
@@ -246,9 +255,10 @@
             (handler-case
                 (let ((volume (load:load-volume pathname)))
                   (when volume
-                    (setf (gtk4:label-text status)
-                          (format nil "Volume with dimensions ~a loaded"
-                                  (array-dimensions volume)))
+                    (setf (gtk4:label-text volume-label)
+                          (format nil "Volume ~a.~a loaded"
+                                  (pathname-name pathname)
+                                  (pathname-type pathname)))
                     (funcall (renderer-volume-uploader renderer) volume)
                     (gtk4:gl-area-queue-render (renderer-area renderer))))
               (error (c) (error-dialog window c)))
@@ -263,9 +273,10 @@
             (handler-case
                 (let ((slice (load:load-slice pathname)))
                   (when slice
-                    (setf (gtk4:label-text status)
-                          (format nil "Slice with dimensions ~a loaded"
-                                  (array-dimensions slice)))
+                    (setf (gtk4:label-text slice-label)
+                          (format nil "Slice ~a.~a loaded"
+                                  (pathname-name pathname)
+                                  (pathname-type pathname)))
                     (funcall (renderer-slice-uploader renderer) slice)
                     (gtk4:gl-area-queue-render (renderer-area renderer))))
               (error (c) (error-dialog window c)))
