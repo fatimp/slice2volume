@@ -16,6 +16,9 @@
   (plane-program  -1 :type fixnum)
   (texture-3d-size 0 :type (unsigned-byte 32)))
 
+(defstruct (renderer-options (:constructor renderer-options (draw-overlapped-p)))
+  (draw-overlapped-p nil :type boolean))
+
 (serapeum:defconstructor renderer
   (area            gir::object-instance)
   (slice-uploader  slice-gpu-uploader)
@@ -103,6 +106,7 @@
   (lambda (area)
     (gtk4:gl-area-make-current area)
     (gl:clear-color 0.0 0.0 0.0 0.0)
+    (gl:blend-func :src-alpha :one-minus-src-alpha)
 
     (let ((slice-program  (create-program *slice-program*))
           (volume-program (create-program *volume-program*))
@@ -153,16 +157,21 @@
       (gl:delete-texture (context-slice-texture context)))
     (values)))
 
-(serapeum:-> make-draw-handler (context tran:trans-param)
+(serapeum:-> make-draw-handler (context tran:trans-param renderer-options)
              (values (function (gir::object-instance gir::object-instance)
                                (values boolean &optional))
                      &optional))
-(defun make-draw-handler (context scene)
+(defun make-draw-handler (context scene options)
   (lambda (area ctx)
     (declare (ignore ctx))
     (gl:clear :color-buffer-bit)
-    (let ((area-width  (floor    (gtk4:widget-width  area) 2))
-          (area-height (identity (gtk4:widget-height area))))
+    (let* ((overlappedp (renderer-options-draw-overlapped-p options))
+           (area-width  (gtk4:widget-width  area))
+           (area-height (gtk4:widget-height area))
+           (%area-width (floor area-width (if overlappedp 1 2))))
+      (if overlappedp
+          (gl:enable  :blend)
+          (gl:disable :blend))
       (when (slice-loaded-p context)
         ;; Render slice
         (gl:bind-texture :texture-2d (context-slice-texture context))
@@ -170,10 +179,15 @@
             (view:viewport-dimensions
              (gl:get-tex-level-parameter :texture-2d 0 :texture-width)
              (gl:get-tex-level-parameter :texture-2d 0 :texture-height)
-             area-width area-height)
+             %area-width area-height)
           (gl:viewport x y width height))
-        (gl:use-program (context-slice-program context))
-        (set-int-uniform (context-slice-program context) "SAMPLER" 0)
+        (let ((program (context-slice-program context)))
+          (gl:use-program program)
+          (set-int-uniform program "SAMPLER" 0)
+          (set-vec-uniform program "COLOR"
+                           (if overlappedp
+                               (v4:make 1.0 0.0 0.0 1.0)
+                               (v4:make 1.0 1.0 1.0 1.0))))
         (gl:active-texture :texture0)
         (gl:bind-vertex-array (context-empty-vao context))
         (gl:draw-arrays :triangle-strip 0 4))
@@ -188,11 +202,15 @@
                (gl:get-tex-level-parameter :texture-3d 0 :texture-width)
                (gl:get-tex-level-parameter :texture-3d 0 :texture-height)
                (gl:get-tex-level-parameter :texture-3d 0 :texture-depth))
-              area-width area-height)
-          (gl:viewport (+ area-width x) y width height))
+              %area-width area-height)
+          (gl:viewport (+ (if overlappedp 0 %area-width) x) y width height))
         (let ((program (context-volume-program context)))
           (gl:use-program program)
-          (set-int-uniform  program "SAMPLER" 0)
+          (set-int-uniform program "SAMPLER" 0)
+          (set-vec-uniform program "COLOR"
+                           (if overlappedp
+                               (v4:make 0.0 1.0 0.0 0.5)
+                               (v4:make 1.0 1.0 1.0 1.0)))
           (set-mat3-uniform program "TRANSFORM"
                             (tran:plane-world-transform scene)))
         (gl:active-texture :texture0)
@@ -200,7 +218,7 @@
         (gl:draw-arrays :triangle-strip 0 4))
       ;; Draw slice orientation
       ;; Firstly, draw a cube
-      (let* ((width  (floor area-width  3))
+      (let* ((width  (floor area-width  6))
              (height (floor area-height 6))
              (projection (m4:*
                           (proj:perspective
@@ -227,16 +245,16 @@
         (gl:draw-arrays :triangle-strip 0 4)))
     (values)))
 
-(serapeum:-> make-drawing-area (tran:trans-param)
+(serapeum:-> make-drawing-area (tran:trans-param renderer-options)
              (values renderer &optional))
-(defun make-drawing-area (scene)
+(defun make-drawing-area (scene options)
   (let ((area    (gtk4:make-gl-area))
         (context (make-context)))
     (setf (gtk4:gl-area-allowed-apis area) 1) ; OpenGL Only
     (gir:invoke (area "set_required_version") 4 2)
     (gtk4:connect area "realize"   (make-realize-handler   context))
     (gtk4:connect area "unrealize" (make-unrealize-handler context))
-    (gtk4:connect area "render"    (make-draw-handler      context scene))
+    (gtk4:connect area "render"    (make-draw-handler      context scene options))
     (renderer
      area
      (make-slice-uploader  area context)

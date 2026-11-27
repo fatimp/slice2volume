@@ -149,6 +149,7 @@
     ;; KLUDGE: this setter is broken in cl-gtk4, so use gir directly
     (gir:invoke (window "set_size_request") 1200 700)
     (let* ((scene (tran:trans-param 1.0 0.0 0.0 0.0 0.0 0.0 (float (/ pi 2) 0.0)))
+           (options (renderer-options nil))
            (toplevel-box (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                         :spacing 2))
            (huge-box     (gtk4:make-box :orientation gtk4:+orientation-horizontal+
@@ -163,12 +164,15 @@
                                         :spacing 5))
            (trans-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                         :spacing 5))
+           (opts-box     (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                        :spacing 5))
            (load-frame  (gtk4:make-frame :label "Data Loading"))
            (trans-frame (gtk4:make-frame :label "Result exporting"))
            (cut-frame   (gtk4:make-frame :label "Cutting Plane Control"))
            (plane-frame (gtk4:make-frame :label "Planar Space Control"))
+           (opts-frame  (gtk4:make-frame :label "Rendering options"))
 
-           (renderer (make-drawing-area scene))
+           (renderer (make-drawing-area scene options))
            (status (gtk4:make-label :str "Welcome to Slice2Volume"))
            ;; Data loading
            (slice-button   (gtk4:make-button :label "Load Slice"))
@@ -176,6 +180,8 @@
            ;; Transform IO
            (save-transform (gtk4:make-button :label "Save transform"))
            (load-transform (gtk4:make-button :label "Load transform"))
+           ;; Rendering options
+           (overlap-button (gtk4:make-toggle-button :label "Draw overlapped"))
            ;; Cutting plane
            (ϕ-scale (scale 0d0 (* 2 pi) (tran:trans-param-ϕ scene) 1d-1))
            (ψ-scale (scale (- (/ pi 2)) (+ (/ pi 2)) (tran:trans-param-ψ scene) 1d-1))
@@ -189,7 +195,8 @@
             (gtk4:frame-child  load-frame)  load-box
             (gtk4:frame-child  cut-frame)   cut-box
             (gtk4:frame-child  plane-frame) plane-box
-            (gtk4:frame-child  trans-frame) trans-box)
+            (gtk4:frame-child  trans-frame) trans-box
+            (gtk4:frame-child  opts-frame)  opts-box)
       (expand-widget (renderer-area renderer))
       (gtk4:box-append toplevel-box huge-box)
       (gtk4:box-append toplevel-box status)
@@ -199,6 +206,7 @@
       (gtk4:box-append big-box  cut-frame)
       (gtk4:box-append big-box  plane-frame)
       (gtk4:box-append big-box  trans-frame)
+      (gtk4:box-append big-box  opts-frame)
       (gtk4:box-append load-box slice-button)
       (gtk4:box-append load-box volume-button)
       (box-append-with-label cut-box ϕ-scale "ϕ" :h)
@@ -210,6 +218,7 @@
       (box-append-with-label plane-box s-scale "s" :h)
       (gtk4:box-append trans-box save-transform)
       (gtk4:box-append trans-box load-transform)
+      (gtk4:box-append opts-box overlap-button)
       (flet ((%connect (scale f)
                (gtk4:connect
                 scale "value-changed"
@@ -298,6 +307,13 @@
                         (float (tran:trans-param-s scene) 0d0))
                   (gtk4:gl-area-queue-render (renderer-area renderer)))
               (error (c) (error-dialog window c)))
-            (values))))))
+            (values)))))
+      (gtk4:connect
+       overlap-button "toggled"
+       (lambda (widget)
+         (declare (ignore widget))
+         (setf (renderer-options-draw-overlapped-p options)
+               (gtk4:toggle-button-active-p overlap-button))
+         (gtk4:gl-area-queue-render (renderer-area renderer)))))
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))

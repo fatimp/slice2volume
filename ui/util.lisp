@@ -100,3 +100,12 @@
   (let ((location (gl:get-uniform-location program uniform)))
     (gl:uniformf location x))
   (values))
+
+(serapeum:-> set-vec-uniform (t string (or rtg-math.types:vec3 rtg-math.types:vec4))
+             (values &optional))
+(defun set-vec-uniform (program uniform v)
+  (let ((location (gl:get-uniform-location program uniform)))
+    (ecase (length v)
+      (3 (gl:uniformf location (aref v 0) (aref v 1) (aref v 2)))
+      (4 (gl:uniformf location (aref v 0) (aref v 1) (aref v 2) (aref v 3)))))
+  (values))

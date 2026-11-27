@@ -32,11 +32,12 @@
 (defparameter *slice-fragment-shader*
   (varjo:make-stage
    :fragment
-   '((coord   :vec2))       ; Texture coordinate
-   '((sampler :sampler-2d)) ; Texture sampler
+   '((coord   :vec2))      ; Texture coordinate
+   '((sampler :sampler-2d) ; Texture sampler
+     (color   :vec4))      ; Draw color
    '(:330)
-   `((let ((color (vari:swizzle (vari:texture sampler (texcoord coord)) :r)))
-       (vari:vec4 color color color 1)))))
+   `((let ((intensity (vari:swizzle (vari:texture sampler (texcoord coord)) :r)))
+       (* color (vari:vec4 (vari:vec3 intensity) 1))))))
 
 (defparameter *slice-program*
   (varjo:rolling-translate
@@ -63,14 +64,15 @@
 (defparameter *volume-fragment-shader*
   (varjo:make-stage
    :fragment
-   '((coord   :vec3))       ; Texture coordinate
-   '((sampler :sampler-3d)) ; Texture sampler
+   '((coord   :vec3))      ; Texture coordinate
+   '((sampler :sampler-3d) ; Texture sampler
+     (color   :vec4))      ; Draw color
    '(:330)
    `((let* ((coord (texcoord coord))
             (clamped (vari:clamp coord (vari:vec3 0) (vari:vec3 1))))
        (if (= coord clamped)
-           (let ((color (vari:swizzle (vari:texture sampler coord) :r)))
-             (vari:vec4 color color color 1))
+           (let ((intensity (vari:swizzle (vari:texture sampler coord) :r)))
+             (* color (vari:vec4 (vari:vec3 intensity) 1)))
            (vari:discard))))))
 
 (defparameter *volume-program*
